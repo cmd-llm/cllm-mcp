@@ -1,0 +1,34 @@
+# LLM Context Configuration for cllm-mcp
+
+## Project Overview
+cllm-mcp is a Model Context Protocol (MCP) implementation for large language models.
+
+## Architecture Decision Records
+
+All architectural decisions for this project are documented in `docs/decisions/` using the Vibe ADR format.
+
+### Current ADRs
+
+- [ADR-0001: Adopt Vibe ADR for Architecture Decision Records](docs/decisions/0001-adopt-vibe-adr.md)
+
+## Key Files and Directories
+
+- `docs/decisions/` - Architecture Decision Records
+- `templates/VIBE_ADR_TEMPLATE.md` - Template for new ADRs
+- `mcp_cli.py` - Main CLI implementation
+- `mcp_daemon.py` - Daemon process implementation
+- `pyproject.toml` - Project configuration and dependencies
+
+## Contributing
+
+When making significant architectural decisions:
+
+1. Create a new ADR in `docs/decisions/` using the template
+2. Follow the naming convention: `NNNN-short-title.md` (e.g., `0002-use-async-io.md`)
+3. Increment the number from the last ADR
+4. Update this file to list the new ADR
+5. Commit ADRs with the `docs:` prefix (e.g., `docs: ADR-0002 use async IO`)
+
+## Decision Context
+
+This file helps LLMs understand the project's architectural decisions and context when analyzing, reviewing, or extending the codebase.
