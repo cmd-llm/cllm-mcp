@@ -21,6 +21,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 from mcp_cli import cmd_list_tools, cmd_call_tool, cmd_interactive, daemon_list_all_tools
 from mcp_daemon import daemon_start, daemon_stop, daemon_status
 from cllm_mcp.daemon_utils import should_use_daemon, get_daemon_socket_path
+from cllm_mcp.socket_utils import get_daemon_config
 from cllm_mcp.config import (
     cmd_config_list, cmd_config_validate, find_config_file, load_config,
     validate_config, resolve_server_ref, ConfigError
@@ -224,7 +225,7 @@ Examples:
 
 def handle_list_tools(args):
     """Handle list-tools command with daemon detection and config resolution."""
-    # If no server_command specified, list all daemon tools
+    # If no server_command specified, try to list available servers from daemon config
     if args.server_command is None:
         socket_path = get_daemon_socket_path(args.socket)
         is_daemon_available = should_use_daemon(
@@ -239,7 +240,32 @@ def handle_list_tools(args):
             print("Usage: cllm-mcp list-tools [server_name_or_command]", file=sys.stderr)
             sys.exit(1)
 
-        # List all tools from daemon
+        # Try to get configured servers from daemon
+        daemon_config = get_daemon_config(socket_path, verbose=args.verbose)
+        if daemon_config and daemon_config.get("servers"):
+            servers = daemon_config.get("servers", {})
+            server_count = len(servers)
+
+            if args.json:
+                import json as json_module
+                print(json_module.dumps(servers, indent=2))
+            else:
+                if server_count == 0:
+                    print("No servers configured")
+                else:
+                    print(f"Available configured servers from daemon ({server_count} total):\n")
+                    for server_name, server_config in servers.items():
+                        print(f"  {server_name}")
+                        if server_config.get("description"):
+                            print(f"    Description: {server_config['description']}")
+                        print(f"    Command: {server_config.get('command', 'unknown')}")
+                        if server_config.get("args"):
+                            print(f"    Args: {' '.join(server_config['args'])}")
+                        status = "running" if server_config.get("running") else "available"
+                        print(f"    Status: {status}\n")
+            return None
+
+        # Fallback: List all running tools from daemon
         try:
             result = daemon_list_all_tools(socket_path)
             return _display_all_daemon_tools(result, args.json)
@@ -263,6 +289,22 @@ def handle_list_tools(args):
             print("[config] Could not load configuration", file=sys.stderr)
         config = None
 
+    # Detect and configure daemon early to potentially get server names from daemon config
+    socket_path = get_daemon_socket_path(args.socket)
+    use_daemon = should_use_daemon(
+        socket_path,
+        args.no_daemon,
+        args.daemon_timeout,
+        args.verbose
+    )
+
+    # If no local config found but daemon is available, try to get config from daemon
+    if not config and use_daemon:
+        daemon_config = get_daemon_config(socket_path, verbose=args.verbose)
+        if daemon_config and daemon_config.get("servers"):
+            # Build a config dict from daemon's servers for resolution
+            config = {"mcpServers": daemon_config.get("servers", {})}
+
     # Resolve server reference (could be a name or a command)
     resolved_command, server_name = resolve_server_ref(args.server_command, config)
 
@@ -271,15 +313,6 @@ def handle_list_tools(args):
 
     # Set the resolved command
     args.server_command = resolved_command
-
-    # Detect and configure daemon
-    socket_path = get_daemon_socket_path(args.socket)
-    use_daemon = should_use_daemon(
-        socket_path,
-        args.no_daemon,
-        args.daemon_timeout,
-        args.verbose
-    )
 
     # Set args for the handler
     args.use_daemon = use_daemon
@@ -307,6 +340,22 @@ def handle_call_tool(args):
             print("[config] Could not load configuration", file=sys.stderr)
         config = None
 
+    # Detect and configure daemon early to potentially get server names from daemon config
+    socket_path = get_daemon_socket_path(args.socket)
+    use_daemon = should_use_daemon(
+        socket_path,
+        args.no_daemon,
+        args.daemon_timeout,
+        args.verbose
+    )
+
+    # If no local config found but daemon is available, try to get config from daemon
+    if not config and use_daemon:
+        daemon_config = get_daemon_config(socket_path, verbose=args.verbose)
+        if daemon_config and daemon_config.get("servers"):
+            # Build a config dict from daemon's servers for resolution
+            config = {"mcpServers": daemon_config.get("servers", {})}
+
     # Resolve server reference (could be a name or a command)
     resolved_command, server_name = resolve_server_ref(args.server_command, config)
 
@@ -315,15 +364,6 @@ def handle_call_tool(args):
 
     # Set the resolved command
     args.server_command = resolved_command
-
-    # Detect and configure daemon
-    socket_path = get_daemon_socket_path(args.socket)
-    use_daemon = should_use_daemon(
-        socket_path,
-        args.no_daemon,
-        args.daemon_timeout,
-        args.verbose
-    )
 
     # Set args for the handler
     args.use_daemon = use_daemon
@@ -345,7 +385,11 @@ def handle_daemon(args):
 
     if args.daemon_command == "start":
         # Create args object for daemon handler
-        daemon_args = argparse.Namespace(socket=socket_path, foreground=getattr(args, 'foreground', False))
+        daemon_args = argparse.Namespace(
+            socket=socket_path,
+            config=args.config,
+            foreground=getattr(args, 'foreground', False)
+        )
         return daemon_start(daemon_args)
     elif args.daemon_command == "stop":
         daemon_args = argparse.Namespace(socket=socket_path)

@@ -183,3 +183,47 @@ def is_daemon_available(socket_path: str = DEFAULT_SOCKET_PATH,
         if verbose:
             print(f"[daemon] Unexpected error checking daemon: {e}", file=sys.stderr)
         return False
+
+
+def get_daemon_config(socket_path: str = DEFAULT_SOCKET_PATH,
+                      timeout: float = DAEMON_CTRL_TIMEOUT,
+                      verbose: bool = False) -> Optional[Dict[str, Any]]:
+    """
+    Get configuration from daemon (list of available servers).
+
+    Args:
+        socket_path: Path to daemon socket
+        timeout: Communication timeout in seconds
+        verbose: Print status messages to stderr
+
+    Returns:
+        Configuration dict with available servers, or None if error
+    """
+    try:
+        client = SocketClient(socket_path, timeout)
+        response = client.send_request({"command": "get-config"})
+        client.close()
+
+        if response.get("success"):
+            return response
+        else:
+            if verbose:
+                print(f"[daemon] {response.get('error', 'Unknown error')}", file=sys.stderr)
+            return None
+
+    except ConnectionError as e:
+        if verbose:
+            print(f"[daemon] Cannot connect to daemon: {e}", file=sys.stderr)
+        return None
+    except TimeoutError:
+        if verbose:
+            print("[daemon] Daemon request timed out", file=sys.stderr)
+        return None
+    except (ValueError, json.JSONDecodeError):
+        if verbose:
+            print("[daemon] Invalid response from daemon", file=sys.stderr)
+        return None
+    except Exception as e:
+        if verbose:
+            print(f"[daemon] Error getting config from daemon: {e}", file=sys.stderr)
+        return None

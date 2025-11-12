@@ -1,0 +1,333 @@
+===============================================================================
+                    CLLM-MCP DAEMON ARCHITECTURE DIAGRAM
+===============================================================================
+
+1. UNIFIED COMMAND DISPATCHER FLOW
+═══════════════════════════════════════════════════════════════════════════
+
+User Input
+    │
+    ↓
+┌─────────────────────────────────────────────┐
+│ cllm-mcp [global-options] <command> [args] │
+│                                              │
+│ Global Options:                             │
+│  --config FILE      Config file path        │
+│  --socket PATH      Daemon socket path      │
+│  --no-daemon        Force direct mode       │
+│  --daemon-timeout   Detection timeout       │
+│  --verbose          Debug output            │
+└─────────────────────────────────────────────┘
+    │
+    ├─→ list-tools [server]   ─→ handle_list_tools()
+    ├─→ call-tool [...]       ─→ handle_call_tool()
+    ├─→ interactive [server]  ─→ handle_interactive()
+    ├─→ daemon [subcommand]   ─→ handle_daemon()
+    │    ├─ start [--foreground]
+    │    ├─ stop
+    │    ├─ status
+    │    └─ restart
+    └─→ config [subcommand]   ─→ handle_config()
+         ├─ list [--json]
+         └─ validate
+
+
+2. CONFIGURATION DISCOVERY & LOADING PIPELINE
+═══════════════════════════════════════════════════════════════════════════
+
+find_config_file(explicit_path=None)
+    │
+    ├─ explicit_path provided?
+    │  └─→ YES: Check path, return if exists
+    │
+    ├─ Check ./mcp-config.json or ./.mcp-config.json
+    │  └─→ Found: Return path
+    │
+    ├─ Check ~/.config/cllm-mcp/config.json
+    │  └─→ Found: Return path
+    │
+    ├─ Check /etc/cllm-mcp/config.json
+    │  └─→ Found: Return path
+    │
+    └─ None found: Return None
+
+              ↓
+        
+load_config(path)
+    │
+    ├─ Expand ~ to home directory
+    ├─ Check file exists (raise ConfigError if not)
+    ├─ Parse JSON (raise ConfigError if invalid)
+    └─→ Return config dict
+
+              ↓
+
+validate_config(config)
+    │
+    ├─ Check 'mcpServers' exists
+    ├─ For each server:
+    │  ├─ Check 'command' exists
+    │  ├─ Validate 'args' is list
+    │  ├─ Validate 'env' is dict
+    │  └─ Validate 'description' is string
+    └─→ Return list of errors (empty = valid)
+
+
+3. SERVER REFERENCE RESOLUTION
+═══════════════════════════════════════════════════════════════════════════
+
+resolve_server_ref(server_ref, config)
+    │
+    ├─ config is None?
+    │  └─→ YES: Treat as literal command, return (server_ref, None)
+    │
+    └─ config exists?
+       ├─ server_ref matches config server name?
+       │  └─→ YES:
+       │      ├─ Get server config
+       │      ├─ build_server_command(server_config)
+       │      │   └─ Combine "command" + "args" into full command
+       │      └─→ Return (full_command, server_name)
+       │
+       └─ NO: Treat as literal command, return (server_ref, None)
+
+
+4. DAEMON AVAILABILITY DETECTION
+═══════════════════════════════════════════════════════════════════════════
+
+should_use_daemon(socket_path, no_daemon=False, timeout=1.0)
+    │
+    ├─ no_daemon flag is True?
+    │  └─→ YES: Return False (force direct mode)
+    │
+    └─ no_daemon flag is False?
+       │
+       └─ is_daemon_available(socket_path, timeout)?
+          │
+          ├─ Try to connect to socket
+          ├─ Send "status" command
+          ├─ Receive response
+          │  └─→ YES: Return True (use daemon)
+          │
+          └─ Connection failed or timeout
+             └─→ NO: Return False (use direct mode)
+
+
+5. EXECUTION PATH: DAEMON MODE vs. DIRECT MODE
+═══════════════════════════════════════════════════════════════════════════
+
+For: list-tools "server_name"
+     
+     ┌─────────────────────────────────────────────────────────┐
+     │ Resolved to: "uvx mcp-server-time"                      │
+     │ Daemon available? YES                                    │
+     └─────────────────────────────────────────────────────────┘
+            │
+            ├──→ [DAEMON MODE]
+            │
+            └──→ client = SocketClient("/tmp/mcp-daemon.sock")
+                 │
+                 ├─ Connect to daemon
+                 │
+                 └─ Send JSON request:
+                    {
+                      "command": "start",
+                      "server": "a1b2c3d4e5f6",        # MD5 hash of command
+                      "server_command": "uvx mcp-server-time"
+                    }
+                    │
+                    └─ Daemon receives:
+                       ├─ Parse JSON request
+                       ├─ Create MCPClient if not cached
+                       ├─ Start server subprocess
+                       └─ Return: {"success": true, "message": "..."}
+            
+                 ├─ Send JSON request:
+                    {
+                      "command": "list",
+                      "server": "a1b2c3d4e5f6"
+                    }
+                    │
+                    └─ Daemon receives:
+                       ├─ Look up server in cache
+                       ├─ Call server.list_tools()
+                       └─ Return: {"success": true, "tools": [...]}
+                 
+                 └─ Close connection
+                    └─ Display results
+
+
+     ┌─────────────────────────────────────────────────────────┐
+     │ Resolved to: "uvx mcp-server-time"                      │
+     │ Daemon available? NO or --no-daemon specified           │
+     └─────────────────────────────────────────────────────────┘
+            │
+            ├──→ [DIRECT MODE]
+            │
+            └──→ client = MCPClient("uvx mcp-server-time")
+                 │
+                 ├─ Start server subprocess directly
+                 │  ├─ Spawn process with stdin/stdout pipes
+                 │  └─ Send MCP initialize message
+                 │
+                 ├─ client.list_tools()
+                 │  ├─ Send MCP tools/list request
+                 │  └─ Read response from stdout
+                 │
+                 └─ client.stop()
+                    ├─ Close stdin to signal shutdown
+                    └─ Clean up subprocess
+
+
+6. DAEMON PROTOCOL: SOCKET COMMUNICATION
+═══════════════════════════════════════════════════════════════════════════
+
+                      Client                    Daemon
+                        │                         │
+                        │     Socket Connected    │
+                        ├────────────────────────→ 
+                        │                         │
+                        │  {"command": "start"}  │
+                        │  + \n delimiter        │
+                        ├────────────────────────→
+                        │                         ├─ Parse JSON
+                        │                         ├─ Validate request
+                        │                         ├─ Process command
+                        │                         ├─ Generate response
+                        │                         │
+                        │  {"success": true}     │
+                        │  + \n delimiter        │
+                        │←────────────────────────┤
+                        │                         │
+                    [Process]               [Cache Server]
+                        │                         │
+                        │  {"command": "list"}   │
+                        ├────────────────────────→
+                        │                         ├─ Look up server
+                        │                         ├─ Call list_tools()
+                        │                         │
+                        │  {"success": true,     │
+                        │   "tools": [...]}      │
+                        │  + \n delimiter        │
+                        │←────────────────────────┤
+                        │                         │
+                        │     Connection Close   │
+                        ├────────────────────────→
+
+
+7. DAEMON DATA STRUCTURES
+═══════════════════════════════════════════════════════════════════════════
+
+MCPDaemon Instance:
+├─ socket_path: str = "/tmp/mcp-daemon.sock"
+├─ servers: Dict[str, MCPClient] = {}
+│  │
+│  ├─ "a1b2c3d4e5f6" → MCPClient(process=<running>)
+│  │                   ├─ server_command: "uvx mcp-server-time"
+│  │                   └─ process: Popen object
+│  │
+│  └─ "f1e2d3c4b5a6" → MCPClient(process=<running>)
+│                      ├─ server_command: "python -m my_server"
+│                      └─ process: Popen object
+│
+├─ lock: threading.Lock()
+│  └─ Protects servers dict during concurrent access
+│
+└─ running: bool = True
+   └─ Set to False on shutdown signal
+
+
+Configuration Structure:
+{
+  "mcpServers": {
+    "time": {
+      "command": "uvx mcp-server-time",
+      "args": [],
+      "description": "Get current time",
+      "env": {}
+    },
+    "filesystem": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-filesystem", "/home"],
+      "description": "Access local filesystem",
+      "env": {
+        "ALLOWED_DIRS": "/home:/tmp"
+      }
+    }
+  }
+}
+
+
+8. COMMAND ROUTING & ENTRY POINTS
+═══════════════════════════════════════════════════════════════════════════
+
+pyproject.toml [project.scripts]:
+│
+├─ cllm-mcp          → cllm_mcp.main:main()          [NEW - Primary]
+│
+├─ mcp-cli           → mcp_cli.main()                [TODO - Legacy alias]
+│
+└─ mcp-daemon        → mcp_daemon.main()             [TODO - Legacy alias]
+
+
+main.py Routes Commands:
+│
+├─ "list-tools"      → handle_list_tools()
+│                       ├─ Load config
+│                       ├─ Resolve server ref
+│                       ├─ Detect daemon
+│                       └─ Dispatch: daemon_list_tools() or MCPClient.list_tools()
+│
+├─ "call-tool"       → handle_call_tool()
+│                       ├─ Load config
+│                       ├─ Resolve server ref
+│                       ├─ Detect daemon
+│                       └─ Dispatch: daemon_call_tool() or MCPClient.call_tool()
+│
+├─ "interactive"     → handle_interactive()
+│                       └─ Always direct mode
+│
+├─ "daemon"          → handle_daemon()
+│                       ├─ "start"   → daemon_start()
+│                       ├─ "stop"    → daemon_stop()
+│                       ├─ "status"  → daemon_status()
+│                       └─ "restart" → daemon_stop() + daemon_start()
+│
+└─ "config"          → handle_config()
+                       ├─ "list"     → cmd_config_list()
+                       └─ "validate" → cmd_config_validate()
+
+
+9. REQUEST-RESPONSE TYPES
+═══════════════════════════════════════════════════════════════════════════
+
+SERVER MANAGEMENT:
+  Request:  {"command": "start", "server": "ID", "server_command": "..."}
+  Response: {"success": true, "message": "..."} 
+           or {"success": false, "error": "..."}
+
+  Request:  {"command": "stop", "server": "ID"}
+  Response: {"success": true, "message": "..."}
+
+TOOL OPERATIONS:
+  Request:  {"command": "list", "server": "ID"}
+  Response: {"success": true, "tools": [{name, description, inputSchema}]}
+
+  Request:  {"command": "call", "server": "ID", "tool": "NAME", "arguments": {...}}
+  Response: {"success": true, "result": {...}}
+           or {"success": false, "error": "...", "retry": true}
+
+  Request:  {"command": "list-all"}
+  Response: {"success": true, "servers": {...}, "server_count": N, "total_tools": M}
+
+DAEMON CONTROL:
+  Request:  {"command": "status"}
+  Response: {"status": "running", "servers": [...], "server_count": N}
+
+  Request:  {"command": "shutdown"}
+  Response: {"success": true, "message": "Daemon shutting down"}
+
+
+===============================================================================
+                              END OF DIAGRAMS
+===============================================================================

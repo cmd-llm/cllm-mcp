@@ -37,16 +37,33 @@ from mcp_cli import MCPClient
 # Add parent directory to path for imports
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 from cllm_mcp.socket_utils import SocketClient, DAEMON_CTRL_TIMEOUT
+from cllm_mcp.config import find_config_file, load_config, validate_config
 
 
 class MCPDaemon:
     """Daemon that manages multiple MCP server processes."""
 
-    def __init__(self, socket_path: str = "/tmp/mcp-daemon.sock"):
+    def __init__(self, socket_path: str = "/tmp/mcp-daemon.sock", config_path: Optional[str] = None):
         self.socket_path = socket_path
         self.servers: Dict[str, MCPClient] = {}
         self.lock = threading.Lock()
         self.running = True
+
+        # Load configuration for server discovery
+        self.config = None
+        self.config_path = None
+        try:
+            # Try explicit path first, then auto-discover
+            config_file = config_path or find_config_file()
+            if config_file:
+                self.config = load_config(str(config_file))
+                errors = validate_config(self.config)
+                if not errors:
+                    self.config_path = str(config_file)
+                else:
+                    self.config = None  # Invalid config, ignore it
+        except Exception:
+            pass  # Gracefully ignore config loading errors
 
     def start_server(self, name: str, command: str) -> Dict[str, Any]:
         """Start and cache an MCP server."""
@@ -157,6 +174,37 @@ class MCPDaemon:
                 "server_count": len(self.servers)
             }
 
+    def get_config(self) -> Dict[str, Any]:
+        """Get available servers from configuration."""
+        if not self.config:
+            return {
+                "success": False,
+                "error": "No configuration loaded"
+            }
+
+        try:
+            servers = self.config.get("mcpServers", {})
+            available_servers = {}
+            for name, config in servers.items():
+                available_servers[name] = {
+                    "command": config.get("command", ""),
+                    "args": config.get("args", []),
+                    "description": config.get("description", ""),
+                    "running": name in self.servers
+                }
+
+            return {
+                "success": True,
+                "config_path": self.config_path,
+                "servers": available_servers,
+                "server_count": len(available_servers)
+            }
+        except Exception as e:
+            return {
+                "success": False,
+                "error": f"Error reading configuration: {str(e)}"
+            }
+
     def handle_request(self, data: Dict[str, Any]) -> Dict[str, Any]:
         """Handle a client request."""
         cmd = data.get("command")
@@ -182,6 +230,9 @@ class MCPDaemon:
 
         elif cmd == "status":
             return self.get_status()
+
+        elif cmd == "get-config":
+            return self.get_config()
 
         elif cmd == "shutdown":
             self.running = False
@@ -271,7 +322,9 @@ def daemon_start(args):
             # Socket exists but nothing listening, clean it up
             os.unlink(socket_path)
 
-    daemon = MCPDaemon(socket_path)
+    # Get config path if provided
+    config_path = getattr(args, 'config', None)
+    daemon = MCPDaemon(socket_path, config_path)
 
     # Handle signals for graceful shutdown
     def signal_handler(sig, frame):
