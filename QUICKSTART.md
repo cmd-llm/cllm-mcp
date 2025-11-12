@@ -2,7 +2,9 @@
 
 Get started with MCP CLI in 5 minutes!
 
-## Installation
+## Installation (Recommended: Using uv)
+
+This project uses [uv](https://docs.astral.sh/uv/) as its Python package manager for faster, deterministic dependency management.
 
 ```bash
 # 1. Install uv (if not already installed)
@@ -22,10 +24,14 @@ chmod +x mcp_cli.py mcp-*.sh examples/*.sh
 uv run mcp-cli --help
 ```
 
-**Alternative**: If you prefer not to use uv, you can run the Python script directly (Python 3.7+ required):
+### Alternative: Direct Python Execution
+
+If you prefer not to use uv, you can run the Python script directly (Python 3.7+ required):
 ```bash
 ./mcp_cli.py --help
 ```
+
+> **Note**: This project officially uses `uv` for dependency management. See [ADR-0002](docs/decisions/0002-adopt-uv-package-manager.md) for details.
 
 ## Basic Usage
 
