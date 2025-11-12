@@ -28,8 +28,13 @@ import subprocess
 import argparse
 from typing import Dict, Any, List, Optional
 import shlex
-import socket
 import hashlib
+
+import os
+
+# Add parent directory to path for imports from root
+sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
+from cllm_mcp.socket_utils import SocketClient, DAEMON_TOOL_TIMEOUT
 
 
 class MCPClient:
@@ -185,36 +190,16 @@ def get_server_id(command: str) -> str:
 def send_daemon_request(request: Dict[str, Any], socket_path: str = "/tmp/mcp-daemon.sock") -> Dict[str, Any]:
     """Send a request to the daemon and return the response."""
     try:
-        sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-        sock.connect(socket_path)
-        sock.settimeout(30.0)  # 30 second timeout for tool calls
-
-        # Send request
-        sock.sendall(json.dumps(request).encode() + b"\n")
-
-        # Receive response
-        data = b""
-        while True:
-            chunk = sock.recv(4096)
-            if not chunk:
-                break
-            data += chunk
-            if b"\n" in data:
-                break
-
-        sock.close()
-
-        if not data:
-            raise Exception("No response from daemon")
-
-        return json.loads(data.decode().strip())
-
-    except FileNotFoundError:
-        raise Exception("Daemon not running. Start it with: mcp_daemon.py start")
-    except ConnectionRefusedError:
-        raise Exception("Cannot connect to daemon. Start it with: mcp_daemon.py start")
-    except socket.timeout:
-        raise Exception("Daemon request timed out")
+        client = SocketClient(socket_path, timeout=DAEMON_TOOL_TIMEOUT)
+        response = client.send_request(request)
+        client.close()
+        return response
+    except ConnectionError as e:
+        raise Exception(str(e))
+    except TimeoutError as e:
+        raise Exception(f"Daemon request timed out: {e}")
+    except ValueError as e:
+        raise Exception(f"Invalid daemon response: {e}")
     except Exception as e:
         raise Exception(f"Daemon communication error: {e}")
 

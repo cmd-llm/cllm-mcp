@@ -34,6 +34,50 @@ When using MCP servers with LLMs, tool definitions consume significant tokens in
 └─────────────────┘
 ```
 
+## Entry Points & Command Architecture
+
+This project uses a unified command architecture (ADR-0003) with backward compatibility for legacy scripts.
+
+### Primary Entry Point (Recommended)
+```bash
+# New unified command via Python entry point
+uv run cllm-mcp list-tools "npx -y @modelcontextprotocol/server-filesystem /tmp"
+uv run cllm-mcp call-tool "npx -y @modelcontextprotocol/server-filesystem /tmp" read_file '{"path": "/tmp/test.txt"}'
+
+# Or with daemon mode
+uv run cllm-mcp list-tools --use-daemon "npx -y @modelcontextprotocol/server-filesystem /tmp"
+uv run cllm-mcp daemon start  # Start daemon in background
+```
+
+**Module**: `cllm_mcp/main.py` → Entry point: `cllm-mcp` command
+
+### Legacy Entry Points (Backward Compatible)
+```bash
+# Legacy client (works, but consider using main entry point)
+python mcp_cli.py list-tools "..."
+python mcp_cli.py call-tool "..." tool_name '{...}'
+
+# Legacy daemon (works, but consider using main entry point)
+python mcp_daemon.py start
+python mcp_daemon.py stop
+python mcp_daemon.py status
+```
+
+**Note**: Root-level `mcp_cli.py` and `mcp_daemon.py` are kept for backward compatibility but the modern approach is to use the unified `cllm-mcp` command through `cllm_mcp/main.py`.
+
+### Module Architecture
+```
+cllm_mcp/
+├── main.py              # Unified command dispatcher (primary entry point)
+├── socket_utils.py      # Shared socket communication utilities
+├── daemon_utils.py      # Daemon detection and configuration
+└── config.py            # Configuration management
+```
+
+**Root-level files** (for backward compatibility):
+- `mcp_cli.py` → Imported by main.py for direct mode implementation
+- `mcp_daemon.py` → Imported by main.py for daemon mode implementation
+
 ## Components
 
 ### 1. Core MCP Client (`mcp_cli.py`)

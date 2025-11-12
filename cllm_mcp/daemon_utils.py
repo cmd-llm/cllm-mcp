@@ -5,74 +5,10 @@ Provides smart daemon detection with graceful fallback to direct mode.
 """
 
 import os
-import socket
-import json
 import sys
 from typing import Optional
 
-
-def is_daemon_available(socket_path: str, timeout: float = 1.0, verbose: bool = False) -> bool:
-    """
-    Check if the daemon is available and responsive.
-
-    Args:
-        socket_path: Path to the daemon socket
-        timeout: Connection timeout in seconds
-        verbose: Print status messages
-
-    Returns:
-        True if daemon is available and responsive, False otherwise
-    """
-    # Check if socket file exists
-    if not os.path.exists(socket_path):
-        if verbose:
-            print(f"[daemon] Socket not found at {socket_path}", file=sys.stderr)
-        return False
-
-    try:
-        # Attempt to connect and send a ping
-        sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-        sock.settimeout(timeout)
-        sock.connect(socket_path)
-
-        # Send a simple status request
-        ping_request = {"command": "status"}
-        sock.sendall(json.dumps(ping_request).encode() + b"\n")
-
-        # Wait for response
-        try:
-            response_data = sock.recv(4096)
-            sock.close()
-
-            if response_data:
-                # Parse to verify it's valid JSON
-                json.loads(response_data.decode().strip())
-                if verbose:
-                    print("[daemon] Daemon is available and responsive", file=sys.stderr)
-                return True
-        except socket.timeout:
-            if verbose:
-                print("[daemon] Daemon connection timed out", file=sys.stderr)
-            sock.close()
-            return False
-        except json.JSONDecodeError:
-            if verbose:
-                print("[daemon] Invalid response from daemon", file=sys.stderr)
-            sock.close()
-            return False
-
-    except (FileNotFoundError, ConnectionRefusedError, ConnectionError) as e:
-        if verbose:
-            print(f"[daemon] Cannot connect to daemon: {e}", file=sys.stderr)
-        return False
-    except socket.timeout:
-        if verbose:
-            print("[daemon] Daemon socket connection timed out", file=sys.stderr)
-        return False
-    except Exception as e:
-        if verbose:
-            print(f"[daemon] Unexpected error checking daemon: {e}", file=sys.stderr)
-        return False
+from .socket_utils import SocketClient, is_daemon_available, DAEMON_CHECK_TIMEOUT, DEFAULT_SOCKET_PATH
 
 
 def should_use_daemon(

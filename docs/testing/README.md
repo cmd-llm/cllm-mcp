@@ -166,30 +166,35 @@ Run before committing:
 uv run pytest tests/ -v --cov=cllm_mcp --cov-fail-under=80
 ```
 
-## Implementation Status
+## ⚠️ CURRENT STATUS: TEST IMPLEMENTATION PENDING
 
-### ✅ Completed
-- [x] ADR-0003 main architecture document
-- [x] Comprehensive testing strategy document
-- [x] Test file structure and organization
-- [x] Unit test specifications (3 files with 80+ test cases)
-- [x] Integration test specifications (2 files with 60+ test cases)
-- [x] Shared fixtures and mock utilities in conftest.py
-- [x] pytest configuration in pyproject.toml
-- [x] GitHub Actions CI/CD workflow
-- [x] Testing guide documentation
+**IMPORTANT**: The test infrastructure and documentation below describe the *planned* testing approach, but **actual test implementation has not yet begun**. The following are not currently in place:
 
-### 🔄 In Progress
-- Unit test implementation (test case stubs created)
-- Integration test implementation (test case stubs created)
+- ❌ `tests/` directory and test files do NOT exist
+- ❌ No actual test code has been implemented
+- ❌ pytest fixtures and conftest.py are NOT set up
+- ❌ Test cases are described but not implemented
 
-### 📋 Next Steps
-1. Implement actual test code (replace pass statements)
-2. Implement main.py dispatcher
-3. Implement daemon_detection.py logic
-4. Implement config.py management
-5. Run full test suite and achieve coverage targets
-6. Create shell completion for cllm-mcp command
+### What IS Implemented
+- ✅ ADR-0003 main architecture document
+- ✅ Comprehensive testing strategy document (describes planned tests)
+- ✅ pytest configuration in pyproject.toml
+- ✅ GitHub Actions CI/CD workflow (will fail until tests exist)
+- ✅ This testing guide documentation
+
+### 📋 Next Steps (TO BE DONE)
+1. **CRITICAL**: Create `tests/` directory structure
+2. Create `tests/conftest.py` with fixtures
+3. Implement unit tests:
+   - `tests/unit/test_daemon_detection.py` (25 test cases)
+   - `tests/unit/test_config_management.py` (35 test cases)
+   - `tests/unit/test_main_dispatcher.py` (35 test cases)
+4. Implement integration tests:
+   - `tests/integration/test_daemon_mode_integration.py` (30 test cases)
+   - `tests/integration/test_fallback_behavior.py` (25 test cases)
+5. Run full test suite and achieve 85%+ coverage
+6. Fix any CI/CD failures
+7. Create shell completion for cllm-mcp command
 
 ## Test Cases Summary
 

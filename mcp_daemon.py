@@ -34,6 +34,10 @@ from pathlib import Path
 from typing import Dict, Any, Optional
 from mcp_cli import MCPClient
 
+# Add parent directory to path for imports
+sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
+from cllm_mcp.socket_utils import SocketClient, DAEMON_CTRL_TIMEOUT
+
 
 class MCPDaemon:
     """Daemon that manages multiple MCP server processes."""
@@ -71,8 +75,8 @@ class MCPDaemon:
                 # Server may have crashed, remove it
                 try:
                     self.servers[server].stop()
-                except:
-                    pass
+                except (Exception, OSError):
+                    pass  # Ignore errors during cleanup
                 del self.servers[server]
                 return {"success": False, "error": str(e), "retry": True}
 
@@ -89,8 +93,8 @@ class MCPDaemon:
                 # Server may have crashed, remove it
                 try:
                     self.servers[server].stop()
-                except:
-                    pass
+                except (Exception, OSError):
+                    pass  # Ignore errors during cleanup
                 del self.servers[server]
                 return {"success": False, "error": str(e)}
 
@@ -110,8 +114,8 @@ class MCPDaemon:
                     # Server may have crashed, remove it
                     try:
                         client.stop()
-                    except:
-                        pass
+                    except (Exception, OSError):
+                        pass  # Ignore errors during cleanup
                     del self.servers[server_id]
 
             return {
@@ -140,8 +144,8 @@ class MCPDaemon:
             for name, client in list(self.servers.items()):
                 try:
                     client.stop()
-                except:
-                    pass
+                except (Exception, OSError):
+                    pass  # Ignore errors during cleanup
             self.servers.clear()
 
     def get_status(self) -> Dict[str, Any]:
@@ -214,7 +218,10 @@ class MCPDaemon:
         finally:
             print("\nShutting down daemon...")
             self.stop_all()
-            sock.close()
+            try:
+                sock.close()
+            except (Exception, OSError):
+                pass  # Ignore errors during cleanup
             Path(self.socket_path).unlink(missing_ok=True)
             print("Daemon stopped")
 
@@ -320,19 +327,9 @@ def daemon_stop(args):
         return
 
     try:
-        sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-        sock.connect(socket_path)
-        sock.settimeout(5.0)
-
-        # Send shutdown command
-        request = {"command": "shutdown"}
-        sock.sendall(json.dumps(request).encode() + b"\n")
-
-        # Wait for response
-        response = sock.recv(4096).decode()
-        result = json.loads(response)
-
-        sock.close()
+        client = SocketClient(socket_path, timeout=DAEMON_CTRL_TIMEOUT)
+        result = client.send_request({"command": "shutdown"})
+        client.close()
 
         if result.get("success"):
             print("Daemon stopped")
@@ -342,10 +339,16 @@ def daemon_stop(args):
             print(f"Error stopping daemon: {result.get('error', 'Unknown error')}")
             sys.exit(1)
 
-    except (ConnectionRefusedError, FileNotFoundError):
+    except ConnectionError:
         print("Daemon is not running (socket exists but no response)")
         # Clean up stale socket
-        os.unlink(socket_path)
+        try:
+            os.unlink(socket_path)
+        except OSError:
+            pass
+    except (TimeoutError, ValueError) as e:
+        print(f"Error stopping daemon: {e}", file=sys.stderr)
+        sys.exit(1)
     except Exception as e:
         print(f"Error stopping daemon: {e}", file=sys.stderr)
         sys.exit(1)
@@ -360,19 +363,9 @@ def daemon_status(args):
         return
 
     try:
-        sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-        sock.connect(socket_path)
-        sock.settimeout(5.0)
-
-        # Send status command
-        request = {"command": "status"}
-        sock.sendall(json.dumps(request).encode() + b"\n")
-
-        # Wait for response
-        response = sock.recv(4096).decode()
-        result = json.loads(response)
-
-        sock.close()
+        client = SocketClient(socket_path, timeout=DAEMON_CTRL_TIMEOUT)
+        result = client.send_request({"command": "status"})
+        client.close()
 
         if getattr(args, 'json', False):
             print(json.dumps(result, indent=2))
@@ -383,8 +376,11 @@ def daemon_status(args):
             if result.get('servers'):
                 print(f"Server names: {', '.join(result['servers'])}")
 
-    except (ConnectionRefusedError, FileNotFoundError):
+    except ConnectionError:
         print("Daemon is not running")
+    except (TimeoutError, ValueError) as e:
+        print(f"Error checking status: {e}", file=sys.stderr)
+        sys.exit(1)
     except Exception as e:
         print(f"Error checking status: {e}", file=sys.stderr)
         sys.exit(1)

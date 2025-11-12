@@ -134,3 +134,10 @@ dmypy.json
 .venv/
 .trunk/
 templates/
+
+# MCP Configuration (project-specific, not example)
+mcp-config.json
+!mcp-config.example.json
+
+# Daemon socket
+/tmp/mcp-daemon.sock
