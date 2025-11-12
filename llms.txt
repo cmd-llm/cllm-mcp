@@ -10,6 +10,7 @@ All architectural decisions for this project are documented in `docs/decisions/`
 ### Current ADRs
 
 - [ADR-0001: Adopt Vibe ADR for Architecture Decision Records](docs/decisions/0001-adopt-vibe-adr.md)
+- [ADR-0002: Adopt uv as the Python Package Manager](docs/decisions/0002-adopt-uv-package-manager.md)
 
 ## Key Files and Directories
 

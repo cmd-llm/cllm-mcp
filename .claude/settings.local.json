@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(trunk check:*)",
+      "Bash(/Users/owenzanzal/.cache/trunk/launcher/trunk check)",
+      "Bash(go mod:*)",
+      "Bash(make:*)",
+      "Bash(bash:*)",
+      "Bash(gh issue create:*)",
+      "Bash(rm:*)",
+      "Bash(./build/zoom-inc-cli send:*)",
+      "Bash(echo:*)",
+      "Bash(env)",
+      "Bash(export ZOOM_WEBHOOK_URL:*)",
+      "Bash(export ZOOM_AUTH_TOKEN=\"Ch54AuZ5QKyBxCSGUnS1CA\")"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
