@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "time": {
+      "command": "uvx",
+      "args": ["mcp-server-time"],
+      "description": "Time and date utilities including timezone support"
+    },
+    "filesystem": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-filesystem", "/tmp"],
+      "description": "File system access for /tmp directory"
+    }
+  }
+}

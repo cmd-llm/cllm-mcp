@@ -144,6 +144,53 @@ def get_server_config(config: Dict[str, Any], server_name: str) -> Optional[Dict
     return servers.get(server_name)
 
 
+def build_server_command(server_config: Dict[str, Any]) -> str:
+    """
+    Build the full server command from configuration.
+
+    Args:
+        server_config: Server configuration dictionary with 'command' and optional 'args'
+
+    Returns:
+        Full command string (e.g., "uvx mcp-server-time" or "npx -y @modelcontextprotocol/server-filesystem /tmp")
+    """
+    command = server_config.get("command", "")
+    args = server_config.get("args", [])
+
+    if args:
+        return f"{command} {' '.join(args)}"
+    return command
+
+
+def resolve_server_ref(server_ref: str, config: Optional[Dict[str, Any]] = None) -> Tuple[str, Optional[str]]:
+    """
+    Resolve a server reference to a full command.
+
+    A server reference can be:
+    1. A server name from config (e.g., "time")
+    2. A full server command (e.g., "uvx mcp-server-time")
+
+    Args:
+        server_ref: Server reference (name or command)
+        config: Configuration dictionary (optional)
+
+    Returns:
+        Tuple of (resolved_command, server_name_or_none)
+        - resolved_command: The full command to execute
+        - server_name_or_none: The server name if resolved from config, None otherwise
+    """
+    # Check if server_ref matches a configured server name
+    if config:
+        servers = config.get("mcpServers", {})
+        if server_ref in servers:
+            server_config = servers[server_ref]
+            command = build_server_command(server_config)
+            return (command, server_ref)
+
+    # Otherwise, treat it as a direct command
+    return (server_ref, None)
+
+
 def list_servers(config: Dict[str, Any]) -> List[Dict[str, Any]]:
     """
     List all configured servers with details.

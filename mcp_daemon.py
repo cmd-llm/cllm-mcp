@@ -94,6 +94,33 @@ class MCPDaemon:
                 del self.servers[server]
                 return {"success": False, "error": str(e)}
 
+    def list_all_tools(self) -> Dict[str, Any]:
+        """List tools from all running servers."""
+        with self.lock:
+            all_tools_by_server = {}
+
+            for server_id, client in self.servers.items():
+                try:
+                    tools = client.list_tools()
+                    all_tools_by_server[server_id] = {
+                        "tools": tools,
+                        "tool_count": len(tools)
+                    }
+                except Exception as e:
+                    # Server may have crashed, remove it
+                    try:
+                        client.stop()
+                    except:
+                        pass
+                    del self.servers[server_id]
+
+            return {
+                "success": True,
+                "servers": all_tools_by_server,
+                "server_count": len(all_tools_by_server),
+                "total_tools": sum(s.get("tool_count", 0) for s in all_tools_by_server.values())
+            }
+
     def stop_server(self, name: str) -> Dict[str, Any]:
         """Stop a specific server."""
         with self.lock:
@@ -145,6 +172,9 @@ class MCPDaemon:
 
         elif cmd == "stop":
             return self.stop_server(data["server"])
+
+        elif cmd == "list-all":
+            return self.list_all_tools()
 
         elif cmd == "status":
             return self.get_status()
@@ -344,7 +374,7 @@ def daemon_status(args):
 
         sock.close()
 
-        if args.json:
+        if getattr(args, 'json', False):
             print(json.dumps(result, indent=2))
         else:
             print(f"Daemon status: {result.get('status', 'unknown')}")

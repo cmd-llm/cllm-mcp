@@ -247,6 +247,19 @@ def daemon_list_tools(server_command: str, socket_path: str = "/tmp/mcp-daemon.s
     return list_response.get("tools", [])
 
 
+def daemon_list_all_tools(socket_path: str = "/tmp/mcp-daemon.sock") -> Dict[str, Any]:
+    """List all tools from all running daemon servers."""
+    list_request = {
+        "command": "list-all"
+    }
+    response = send_daemon_request(list_request, socket_path)
+
+    if not response.get("success"):
+        raise Exception(f"Failed to list tools: {response.get('error', 'Unknown error')}")
+
+    return response
+
+
 def daemon_call_tool(server_command: str, tool_name: str, arguments: Dict[str, Any],
                      socket_path: str = "/tmp/mcp-daemon.sock") -> Any:
     """Call a tool via daemon."""
