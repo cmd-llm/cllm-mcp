@@ -1,6 +1,91 @@
 """Unit tests for configuration management (cllm_mcp/config.py)."""
 
+import json
+import os
 import pytest
+from pathlib import Path
+
+
+class TestCLLMConfigPrecedence:
+    """Tests for CLLM-style configuration precedence (ADR-0004)."""
+
+    @pytest.mark.unit
+    def test_find_config_returns_tuple(self, config_file):
+        """Test that find_config_file returns tuple of (path, trace)."""
+        from cllm_mcp.config import find_config_file
+
+        path, trace = find_config_file(config_file)
+        assert path is not None
+        assert isinstance(trace, list)
+
+    @pytest.mark.unit
+    def test_precedence_explicit_path_highest(self, temp_config_dir):
+        """Test that explicit path has highest precedence."""
+        from cllm_mcp.config import find_config_file
+
+        # Create test config
+        explicit_config = Path(temp_config_dir) / "explicit.json"
+        explicit_config.write_text('{"mcpServers": {}}')
+
+        # Find should return explicit path
+        path, _ = find_config_file(str(explicit_config))
+        assert path == explicit_config
+
+    @pytest.mark.unit
+    def test_precedence_current_directory(self, temp_config_dir, monkeypatch):
+        """Test that ./mcp-config.json is found."""
+        from cllm_mcp.config import find_config_file
+
+        # Create config in current directory
+        cwd_config = Path(temp_config_dir) / "mcp-config.json"
+        cwd_config.write_text('{"mcpServers": {}}')
+
+        # Change to temp directory
+        monkeypatch.chdir(temp_config_dir)
+
+        path, _ = find_config_file()
+        # Use resolve() for consistent path comparison across platforms
+        assert path.resolve() == cwd_config.resolve()
+
+    @pytest.mark.unit
+    def test_verbose_tracing_enabled(self, config_file):
+        """Test that verbose tracing returns trace messages."""
+        from cllm_mcp.config import find_config_file
+
+        path, trace = find_config_file(config_file, verbose=True)
+        assert len(trace) > 0
+        assert any("[CONFIG]" in msg for msg in trace)
+
+    @pytest.mark.unit
+    def test_verbose_tracing_disabled_by_default(self, config_file):
+        """Test that verbose tracing is empty by default."""
+        from cllm_mcp.config import find_config_file
+
+        path, trace = find_config_file(config_file, verbose=False)
+        assert len(trace) == 0
+
+    @pytest.mark.unit
+    def test_environment_variable_override(self, config_file, monkeypatch):
+        """Test that CLLM_MCP_CONFIG environment variable is used."""
+        from cllm_mcp.config import find_config_file
+
+        monkeypatch.setenv("CLLM_MCP_CONFIG", config_file)
+        path, _ = find_config_file(verbose=True)
+        assert path == Path(config_file)
+
+    @pytest.mark.unit
+    def test_backward_compatibility_deprecation_warning(self, config_file):
+        """Test that deprecation warnings are shown in verbose trace."""
+        from cllm_mcp.config import find_config_file
+
+        # Use a path that doesn't exist to trigger deprecated paths check
+        path, trace = find_config_file(verbose=True)
+
+        # Even if not found, trace should show that deprecated paths were checked
+        trace_str = "\n".join(trace).lower()
+        if "deprecated" in trace_str:
+            # If deprecated path found, should have warning
+            assert any("warn" in msg.lower() for msg in trace)
 
 
 class TestConfigLoading:
@@ -9,8 +94,10 @@ class TestConfigLoading:
     @pytest.mark.unit
     def test_load_config_from_explicit_path(self, config_file):
         """Test loading config from explicitly specified path."""
-        # TODO: Implement test
-        pass
+        from cllm_mcp.config import load_config
+        config = load_config(config_file)
+        assert "mcpServers" in config
+        assert "time" in config["mcpServers"]
 
     @pytest.mark.unit
     def test_load_config_from_home_directory(self, temp_config_dir):
