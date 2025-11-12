@@ -2,7 +2,26 @@
 
 ## Status
 
-Proposed
+Accepted (Implemented as of commit 7ed0979)
+
+## Implementation Status
+
+✅ **Complete** - November 12, 2025
+
+All features specified in Phase 1 (MVP) and Phase 2 (Polish) have been successfully implemented and are production-ready.
+
+### Implementation Summary
+
+- **Unified entry point**: `cllm-mcp` command fully functional
+- **Daemon detection**: Smart auto-detection with 1-second timeout, graceful fallback
+- **Configuration management**: `config list` and `config validate` commands working
+- **Server name resolution**: Configuration-based server naming (bonus feature)
+- **List-all-tools**: Daemon-based tool caching and discovery
+- **Examples**: Comprehensive runnable examples and documentation
+- **Backward compatibility**: Maintained - `mcp-cli` and `mcp-daemon` unchanged
+
+**Commit**: 7ed0979 (feat: Add config-based server names and list-all-tools support)
+**Date**: November 12, 2025
 
 ## Context
 

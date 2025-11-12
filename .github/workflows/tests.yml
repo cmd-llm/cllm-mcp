@@ -62,4 +62,4 @@ jobs:
         run: uv sync
 
       - name: Check coverage minimum
-        run: uv run pytest tests/ --cov=cllm_mcp --cov-fail-under=80 --cov-report=term-missing
+        run: uv run pytest tests/ --cov=cllm_mcp --cov-report=term-missing --cov-fail-under=85
