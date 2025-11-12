@@ -27,6 +27,7 @@ classifiers = [
 dependencies = []
 
 [project.scripts]
+cllm-mcp = "cllm_mcp.main:main"
 mcp-cli = "mcp_cli:main"
 mcp-daemon = "mcp_daemon:main"
 
@@ -39,7 +40,51 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.uv]
-dev-dependencies = []
+dev-dependencies = ["pytest>=7.0", "pytest-mock>=3.0"]
 
 [tool.hatch.build.targets.wheel]
 packages = ["."]
+
+[tool.pytest.ini_options]
+# Test discovery patterns
+python_files = ["test_*.py", "*_test.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+
+# Test paths
+testpaths = ["tests"]
+
+# Output options
+addopts = "--strict-markers -v --tb=short"
+
+# Markers for test organization
+markers = [
+    "unit: Unit tests - fast, isolated, no dependencies",
+    "integration: Integration tests - may require running processes",
+    "slow: Tests that take longer to run",
+    "socket: Tests requiring Unix socket operations",
+    "daemon: Tests requiring daemon functionality",
+]
+
+# Coverage options
+[tool.coverage.run]
+source = ["mcp_cli", "mcp_daemon"]
+branch = true
+omit = [
+    "*/tests/*",
+    "*/test_*.py",
+    "*/__pycache__/*",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+    "if TYPE_CHECKING:",
+]
+skip_covered = false
+precision = 2
+show_missing = true
