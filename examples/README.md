@@ -13,6 +13,7 @@ The **best starting point** - shows all major features in one script:
 ```
 
 This covers:
+
 - Configuration management and validation
 - Daemon lifecycle (start, status, stop)
 - Working with server names from config
@@ -30,12 +31,15 @@ This covers:
 ### Configuration & Setup
 
 #### `setup-datetime-config.sh`
+
 Sets up the daemon with time server configuration:
+
 ```bash
 ./examples/setup-datetime-config.sh
 ```
 
 Use this to:
+
 - Create or validate `mcp-config.json`
 - Start the daemon in foreground mode
 - Test basic tool operations
@@ -45,12 +49,15 @@ Use this to:
 ### Daemon Management
 
 #### `start-daemon-with-datetime.sh`
+
 Starts the daemon in foreground mode with datetime server:
+
 ```bash
 ./examples/start-daemon-with-datetime.sh
 ```
 
 Use this when you:
+
 - Want to see daemon output in real-time
 - Need to debug daemon behavior
 - Are first learning how the daemon works
@@ -60,34 +67,43 @@ Use this when you:
 ### Tool Usage Examples
 
 #### `quick-datetime-test.sh`
+
 Quick test of datetime tools with daemon:
+
 ```bash
 ./examples/quick-datetime-test.sh
 ```
 
 Demonstrates:
+
 - Listing tools from a specific server
 - Calling tools with parameters
 - Using both daemon and direct modes
 
 #### `daemon-batch-processing.sh`
+
 Batch processing example - calling multiple tools in sequence:
+
 ```bash
 ./examples/daemon-batch-processing.sh
 ```
 
 Use this for:
+
 - Processing multiple commands efficiently
 - Leveraging daemon caching for performance
 - Batch automation workflows
 
 #### `file-operations.sh`
+
 Examples of file system operations through MCP:
+
 ```bash
 ./examples/file-operations.sh
 ```
 
 Demonstrates:
+
 - Reading files
 - Writing files
 - Directory operations
@@ -98,7 +114,9 @@ Demonstrates:
 ## Key Concepts Demonstrated
 
 ### 1. Server Configuration
+
 All examples use the `mcp-config.json` file to define available servers:
+
 ```json
 {
   "mcpServers": {
@@ -114,11 +132,13 @@ All examples use the `mcp-config.json` file to define available servers:
 ### 2. Multiple Ways to Reference Servers
 
 **By name (from config):**
+
 ```bash
 uv run cllm-mcp list-tools time
 ```
 
 **By full command:**
+
 ```bash
 uv run cllm-mcp list-tools "uvx mcp-server-time"
 ```
@@ -143,16 +163,19 @@ uv run cllm-mcp list-tools
 ### 4. Output Formats
 
 **Human-readable (default):**
+
 ```bash
 uv run cllm-mcp list-tools time
 ```
 
 **JSON (for automation):**
+
 ```bash
 uv run cllm-mcp list-tools time --json
 ```
 
 **Verbose (for debugging):**
+
 ```bash
 uv run cllm-mcp --verbose list-tools time
 ```
@@ -248,11 +271,13 @@ uv run cllm-mcp daemon start
 ```
 
 2. Validate:
+
 ```bash
 uv run cllm-mcp config validate
 ```
 
 3. Use it:
+
 ```bash
 uv run cllm-mcp list-tools my-server
 ```
@@ -262,6 +287,7 @@ uv run cllm-mcp list-tools my-server
 ## Troubleshooting
 
 ### Daemon won't start
+
 ```bash
 # Check what's using the socket
 lsof /tmp/mcp-daemon.sock
@@ -274,6 +300,7 @@ uv run cllm-mcp daemon start
 ```
 
 ### Tools not found
+
 ```bash
 # Verify configuration
 uv run cllm-mcp config validate
@@ -286,6 +313,7 @@ uv run cllm-mcp list-tools
 ```
 
 ### Slow operations
+
 ```bash
 # Start daemon to cache servers
 uv run cllm-mcp daemon start
@@ -313,6 +341,7 @@ uv run cllm-mcp list-tools time
 - Bash 4.0+ (for most example scripts)
 
 Install uv:
+
 ```bash
 curl -LsSf https://astral.sh/uv/install.sh | sh
 ```

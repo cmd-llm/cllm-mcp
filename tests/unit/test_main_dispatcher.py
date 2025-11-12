@@ -1,7 +1,6 @@
 """Unit tests for main command dispatcher (cllm_mcp/main.py)."""
 
 import pytest
-from unittest.mock import MagicMock, patch, call
 
 
 class TestMainDispatcher:
@@ -144,7 +143,9 @@ class TestDaemonDetectionLogic:
         pass
 
     @pytest.mark.unit
-    def test_should_use_daemon_returns_true_when_socket_responsive(self, socket_path, mock_socket):
+    def test_should_use_daemon_returns_true_when_socket_responsive(
+        self, socket_path, mock_socket
+    ):
         """Test that responsive socket enables daemon mode."""
         # TODO: Implement test
         pass

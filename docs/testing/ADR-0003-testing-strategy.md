@@ -312,6 +312,7 @@ def test_config_with_inline_json_arguments()
 ## Test Execution Strategy
 
 ### Unit Tests
+
 ```bash
 # Run all unit tests
 uv run pytest tests/unit/ -v
@@ -324,6 +325,7 @@ uv run pytest tests/unit/test_main_dispatcher.py -v
 ```
 
 ### Integration Tests
+
 ```bash
 # Run all integration tests (may be slower)
 uv run pytest tests/integration/ -v
@@ -333,6 +335,7 @@ uv run pytest tests/integration/ -v --timeout=10
 ```
 
 ### Full Test Suite
+
 ```bash
 # Run all tests
 uv run pytest tests/ -v --cov=cllm_mcp --cov-report=html
@@ -342,6 +345,7 @@ uv run pytest -m "not slow" -v  # Skip slow tests
 ```
 
 ### CI/CD Integration
+
 ```yaml
 # In .github/workflows/test.yml
 - name: Run unit tests
@@ -516,13 +520,13 @@ SAMPLE_CONFIG = {
 
 ### Target Coverage
 
-| Component | Target |
-|-----------|--------|
-| mcp_cli.py (existing) | 85% |
-| mcp_daemon.py (existing) | 85% |
-| main.py (new dispatcher) | 90% |
-| config.py (new management) | 85% |
-| Overall project | 85% |
+| Component                  | Target |
+| -------------------------- | ------ |
+| mcp_cli.py (existing)      | 85%    |
+| mcp_daemon.py (existing)   | 85%    |
+| main.py (new dispatcher)   | 90%    |
+| config.py (new management) | 85%    |
+| Overall project            | 85%    |
 
 ### Critical Paths (Must Have Tests)
 
@@ -536,6 +540,7 @@ SAMPLE_CONFIG = {
 ## Test Schedule
 
 ### Phase 1: Setup (Week 1)
+
 - [ ] Create test directory structure
 - [ ] Configure pytest in pyproject.toml
 - [ ] Create conftest.py with shared fixtures
@@ -543,6 +548,7 @@ SAMPLE_CONFIG = {
 - [ ] Add pytest to dev-dependencies
 
 ### Phase 2: Unit Tests (Weeks 1-2)
+
 - [ ] Test command dispatcher
 - [ ] Test daemon detection logic
 - [ ] Test CLI parser
@@ -550,6 +556,7 @@ SAMPLE_CONFIG = {
 - [ ] Achieve 85% unit test coverage
 
 ### Phase 3: Integration Tests (Weeks 2-3)
+
 - [ ] Test daemon mode end-to-end
 - [ ] Test direct mode end-to-end
 - [ ] Test fallback behavior
@@ -557,6 +564,7 @@ SAMPLE_CONFIG = {
 - [ ] Achieve 80%+ integration coverage
 
 ### Phase 4: CI/CD & Polish (Week 3)
+
 - [ ] Add GitHub Actions workflow for tests
 - [ ] Configure coverage reporting
 - [ ] Document testing procedures

@@ -45,6 +45,7 @@ tests/
 ### Unit Tests (120 cases)
 
 #### 1. Main Dispatcher (45 cases)
+
 **File**: `tests/unit/test_main_dispatcher.py`
 
 Tests for the unified command dispatcher (`cllm_mcp/main.py`):
@@ -56,12 +57,14 @@ Tests for the unified command dispatcher (`cllm_mcp/main.py`):
 - Argument parsing and validation
 
 **Key test areas**:
+
 - ✅ Routes all commands to correct handlers
 - ✅ Passes global options to subcommands
 - ✅ Provides helpful error messages
 - ✅ Handles parsing errors gracefully
 
 #### 2. Daemon Detection (40 cases)
+
 **File**: `tests/unit/test_daemon_detection.py`
 
 Tests for daemon availability detection (`cllm_mcp/daemon_utils.py`):
@@ -73,6 +76,7 @@ Tests for daemon availability detection (`cllm_mcp/daemon_utils.py`):
 - Verbose logging
 
 **Key test areas**:
+
 - ✅ Detects responsive daemon
 - ✅ Falls back when daemon unavailable
 - ✅ Respects --no-daemon flag
@@ -80,6 +84,7 @@ Tests for daemon availability detection (`cllm_mcp/daemon_utils.py`):
 - ✅ Handles edge cases (stale socket, permission denied)
 
 #### 3. Configuration Management (35 cases)
+
 **File**: `tests/unit/test_config_management.py`
 
 Tests for config file handling (`cllm_mcp/config.py`):
@@ -91,6 +96,7 @@ Tests for config file handling (`cllm_mcp/config.py`):
 - Edge cases (empty config, unicode, special characters)
 
 **Key test areas**:
+
 - ✅ Loads config from multiple locations
 - ✅ Validates configuration structure
 - ✅ Resolves server names to commands
@@ -102,6 +108,7 @@ Tests for config file handling (`cllm_mcp/config.py`):
 ### Integration Tests (83 cases)
 
 #### 4. Daemon Mode Integration (35 cases)
+
 **File**: `tests/integration/test_daemon_mode_integration.py`
 
 Tests for daemon-based tool execution:
@@ -118,6 +125,7 @@ Tests for daemon-based tool execution:
 - Health and stability
 
 **Key test areas**:
+
 - ✅ Daemon handles tool calls correctly
 - ✅ Server processes are cached
 - ✅ Performance improvement verified
@@ -125,6 +133,7 @@ Tests for daemon-based tool execution:
 - ✅ Graceful shutdown and cleanup
 
 #### 5. Direct Mode Integration (40 cases)
+
 **File**: `tests/integration/test_direct_mode_integration.py`
 
 Tests for direct mode (without daemon):
@@ -138,6 +147,7 @@ Tests for direct mode (without daemon):
 - Error scenarios
 
 **Key test areas**:
+
 - ✅ Direct mode works without daemon
 - ✅ --no-daemon flag forces direct mode
 - ✅ Spawns and cleans up server processes
@@ -145,6 +155,7 @@ Tests for direct mode (without daemon):
 - ✅ Compatible with existing mcp-cli usage
 
 #### 6. Fallback Behavior (30 cases)
+
 **File**: `tests/integration/test_fallback_behavior.py`
 
 Tests for transparent fallback mechanism:
@@ -159,6 +170,7 @@ Tests for transparent fallback mechanism:
 - Feature compatibility during fallback
 
 **Key test areas**:
+
 - ✅ Transparent fallback works seamlessly
 - ✅ Fallback preserves command arguments
 - ✅ Returns same result as direct mode
@@ -176,26 +188,31 @@ Tests for transparent fallback mechanism:
 Provides 15+ pytest fixtures for testing:
 
 #### Temporary Files
+
 - `temp_socket_dir`: Temporary directory for socket files
 - `socket_path`: Path for test socket
 - `temp_config_dir`: Temporary directory for config files
 - `config_file`: Sample config file
 
 #### Mock Objects
+
 - `mock_mcp_server`: Mock MCP server instance
 - `mock_socket`: Mocked socket
 - `mock_subprocess`: Mocked process spawning
 - `mock_daemon_process`: Mocked daemon process
 
 #### Environment
+
 - `clean_env`: Clean environment without MCP variables
 - `isolated_filesystem`: Isolated working directory
 
 #### Daemon Setup
+
 - `daemon_socket`: Real Unix socket for testing
 - `running_daemon`: Running daemon process
 
 #### Test Data
+
 - `mock_args`: Mock argparse Namespace
 - `cli_args`: Mock CLI arguments
 - `daemon_args`: Mock daemon arguments
@@ -286,15 +303,15 @@ uv run pytest tests/integration/test_daemon_mode_integration.py -v
 
 ### By Category
 
-| Category | File | Test Cases | Type |
-|----------|------|-----------|------|
-| Main Dispatcher | test_main_dispatcher.py | 45 | Unit |
-| Daemon Detection | test_daemon_detection.py | 40 | Unit |
-| Config Management | test_config_management.py | 35 | Unit |
-| Daemon Mode | test_daemon_mode_integration.py | 35 | Integration |
-| Direct Mode | test_direct_mode_integration.py | 40 | Integration |
-| Fallback | test_fallback_behavior.py | 30 | Integration |
-| **TOTAL** | | **225** | |
+| Category          | File                            | Test Cases | Type        |
+| ----------------- | ------------------------------- | ---------- | ----------- |
+| Main Dispatcher   | test_main_dispatcher.py         | 45         | Unit        |
+| Daemon Detection  | test_daemon_detection.py        | 40         | Unit        |
+| Config Management | test_config_management.py       | 35         | Unit        |
+| Daemon Mode       | test_daemon_mode_integration.py | 35         | Integration |
+| Direct Mode       | test_direct_mode_integration.py | 40         | Integration |
+| Fallback          | test_fallback_behavior.py       | 30         | Integration |
+| **TOTAL**         |                                 | **225**    |             |
 
 ### By Type
 
@@ -315,18 +332,21 @@ uv run pytest tests/integration/test_daemon_mode_integration.py -v
 ### Target: 85% overall, 100% critical paths
 
 #### High Priority (100% coverage required)
+
 - Daemon detection logic
 - Fallback behavior
 - Error handling
 - Critical path execution
 
 #### Medium Priority (90%+ coverage)
+
 - Command routing
 - Config loading and validation
 - Socket communication
 - Process management
 
 #### Standard Priority (80%+ coverage)
+
 - Verbose logging
 - Status reporting
 - Help text generation
@@ -338,11 +358,13 @@ uv run pytest tests/integration/test_daemon_mode_integration.py -v
 ### Development Workflow
 
 1. **Before committing**: Run unit tests
+
    ```bash
    uv run pytest tests/unit/ -v
    ```
 
 2. **Before PR**: Run full test suite
+
    ```bash
    uv run pytest tests/ -v --cov=cllm_mcp
    ```
@@ -355,11 +377,13 @@ uv run pytest tests/integration/test_daemon_mode_integration.py -v
 ### Debugging Failed Tests
 
 1. Run specific test with verbose output:
+
    ```bash
    uv run pytest tests/unit/test_main_dispatcher.py::TestMainDispatcher::test_dispatcher_routes_list_tools_command -vv
    ```
 
 2. Show print statements:
+
    ```bash
    uv run pytest tests/ -v -s
    ```
@@ -403,16 +427,19 @@ def test_specific_behavior(self):
 ## Next Steps
 
 ### Phase 1: Implementation
+
 - [ ] Implement failing tests in order of priority
 - [ ] Achieve 85% coverage
 - [ ] Verify all critical paths covered
 
 ### Phase 2: Continuous Integration
+
 - [ ] Run tests on every commit
 - [ ] Track coverage trends
 - [ ] Maintain or improve coverage
 
 ### Phase 3: Maintenance
+
 - [ ] Update tests with code changes
 - [ ] Add tests for bugs discovered
 - [ ] Review and refactor tests periodically

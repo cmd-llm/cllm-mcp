@@ -8,12 +8,12 @@ Handles socket creation, communication, error handling, and timeout management.
 import json
 import socket
 import sys
-from typing import Dict, Any, Optional
+from typing import Any, Dict, Optional
 
 # Standard timeouts for different operations
 DAEMON_CHECK_TIMEOUT = 1.0  # Quick availability check
 DAEMON_TOOL_TIMEOUT = 30.0  # Extended timeout for tool execution
-DAEMON_CTRL_TIMEOUT = 5.0   # Control commands (stop, status)
+DAEMON_CTRL_TIMEOUT = 5.0  # Control commands (stop, status)
 
 # Default socket path
 DEFAULT_SOCKET_PATH = "/tmp/mcp-daemon.sock"
@@ -27,7 +27,11 @@ class SocketClient:
     timeout management, and resource cleanup.
     """
 
-    def __init__(self, socket_path: str = DEFAULT_SOCKET_PATH, timeout: float = DAEMON_TOOL_TIMEOUT):
+    def __init__(
+        self,
+        socket_path: str = DEFAULT_SOCKET_PATH,
+        timeout: float = DAEMON_TOOL_TIMEOUT,
+    ):
         """
         Initialize socket client.
 
@@ -53,7 +57,7 @@ class SocketClient:
             self.sock.connect(self.socket_path)
         except FileNotFoundError:
             raise ConnectionError(
-                f"Daemon not running. Start with: cllm-mcp daemon start"
+                "Daemon not running. Start with: cllm-mcp daemon start"
             )
         except ConnectionRefusedError:
             raise ConnectionError(
@@ -61,9 +65,7 @@ class SocketClient:
                 f"Start with: cllm-mcp daemon start"
             )
         except socket.timeout:
-            raise TimeoutError(
-                f"Daemon connection timed out ({self.timeout}s)"
-            )
+            raise TimeoutError(f"Daemon connection timed out ({self.timeout}s)")
 
     def send_request(self, request: Dict[str, Any]) -> Dict[str, Any]:
         """
@@ -97,7 +99,7 @@ class SocketClient:
         except json.JSONDecodeError as e:
             self.close()
             raise ValueError(f"Invalid JSON response from daemon: {e}")
-        except Exception as e:
+        except Exception:
             self.close()
             raise
 
@@ -142,9 +144,11 @@ class SocketClient:
         self.close()
 
 
-def is_daemon_available(socket_path: str = DEFAULT_SOCKET_PATH,
-                       timeout: float = DAEMON_CHECK_TIMEOUT,
-                       verbose: bool = False) -> bool:
+def is_daemon_available(
+    socket_path: str = DEFAULT_SOCKET_PATH,
+    timeout: float = DAEMON_CHECK_TIMEOUT,
+    verbose: bool = False,
+) -> bool:
     """
     Check if daemon is available and responsive.
 
@@ -185,9 +189,11 @@ def is_daemon_available(socket_path: str = DEFAULT_SOCKET_PATH,
         return False
 
 
-def get_daemon_config(socket_path: str = DEFAULT_SOCKET_PATH,
-                      timeout: float = DAEMON_CTRL_TIMEOUT,
-                      verbose: bool = False) -> Optional[Dict[str, Any]]:
+def get_daemon_config(
+    socket_path: str = DEFAULT_SOCKET_PATH,
+    timeout: float = DAEMON_CTRL_TIMEOUT,
+    verbose: bool = False,
+) -> Optional[Dict[str, Any]]:
     """
     Get configuration from daemon (list of available servers).
 
@@ -208,7 +214,10 @@ def get_daemon_config(socket_path: str = DEFAULT_SOCKET_PATH,
             return response
         else:
             if verbose:
-                print(f"[daemon] {response.get('error', 'Unknown error')}", file=sys.stderr)
+                print(
+                    f"[daemon] {response.get('error', 'Unknown error')}",
+                    file=sys.stderr,
+                )
             return None
 
     except ConnectionError as e:

@@ -29,35 +29,35 @@ NC='\033[0m' # No Color
 
 # Helper functions
 section() {
-    echo ""
-    echo -e "${BLUE}==== $1 ====${NC}"
-    echo ""
+	echo ""
+	echo -e "${BLUE}==== $1 ====${NC}"
+	echo ""
 }
 
 subsection() {
-    echo -e "${CYAN}→ $1${NC}"
+	echo -e "${CYAN}→ $1${NC}"
 }
 
 success() {
-    echo -e "${GREEN}✓ $1${NC}"
+	echo -e "${GREEN}✓ $1${NC}"
 }
 
 info() {
-    echo -e "${YELLOW}ℹ $1${NC}"
+	echo -e "${YELLOW}ℹ $1${NC}"
 }
 
 code() {
-    echo -e "${MAGENTA}  $ $1${NC}"
+	echo -e "${MAGENTA}  $ $1${NC}"
 }
 
 # Get the directory where this script is located
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
+PROJECT_ROOT="$(dirname "${SCRIPT_DIR}")"
 
-cd "$PROJECT_ROOT"
+cd "${PROJECT_ROOT}"
 
 echo -e "${BLUE}"
-cat << 'EOF'
+cat <<'EOF'
 ╔══════════════════════════════════════════════════════════════╗
 ║                                                              ║
 ║         🚀 cllm-mcp Comprehensive Feature Demo 🚀            ║
@@ -92,10 +92,10 @@ uv run cllm-mcp daemon status || info "Daemon not running (this is OK)"
 
 subsection "Starting the daemon in background"
 code "uv run cllm-mcp daemon start &"
-uv run cllm-mcp daemon start > /dev/null 2>&1 &
+uv run cllm-mcp daemon start >/dev/null 2>&1 &
 DAEMON_PID=$!
 sleep 2
-success "Daemon started (PID: $DAEMON_PID)"
+success "Daemon started (PID: ${DAEMON_PID})"
 
 subsection "Checking daemon status again"
 code "uv run cllm-mcp daemon status"
@@ -123,14 +123,14 @@ section "PART 4: Working with Direct Server Commands"
 
 subsection "List tools by full server command"
 info "Using full command instead of config name (backward compatible)"
-code "uv run cllm-mcp list-tools \"uvx mcp-server-time\""
+code 'uv run cllm-mcp list-tools "uvx mcp-server-time"'
 uv run cllm-mcp list-tools "uvx mcp-server-time" | head -20
 echo "  ..."
 
 subsection "Convert time between timezones"
 code "uv run cllm-mcp call-tool \"uvx mcp-server-time\" \"convert_time\" '{\"source_timezone\": \"America/New_York\", \"time\": \"14:30\", \"target_timezone\": \"Europe/London\"}'"
 uv run cllm-mcp call-tool "uvx mcp-server-time" "convert_time" \
-  '{"source_timezone": "America/New_York", "time": "14:30", "target_timezone": "Europe/London"}'
+	'{"source_timezone": "America/New_York", "time": "14:30", "target_timezone": "Europe/London"}'
 
 # ============================================================================
 section "PART 5: Viewing All Daemon Tools"
@@ -145,7 +145,7 @@ subsection "Get all tools in JSON format"
 info "Useful for programmatic processing"
 code "uv run cllm-mcp list-tools --json | jq '.total_tools'"
 TOTAL_TOOLS=$(uv run cllm-mcp list-tools --json | jq '.total_tools')
-echo -e "${GREEN}Total tools in daemon: $TOTAL_TOOLS${NC}"
+echo -e "${GREEN}Total tools in daemon: ${TOTAL_TOOLS}${NC}"
 
 # ============================================================================
 section "PART 6: Different Output Formats"
@@ -187,7 +187,7 @@ success "Daemon stopped"
 section "SUMMARY"
 # ============================================================================
 
-cat << 'EOF'
+cat <<'EOF'
 
 ✅ Demo Complete! You've learned:
 
@@ -242,7 +242,7 @@ cat << 'EOF'
 EOF
 
 echo -e "${BLUE}"
-cat << 'EOF'
+cat <<'EOF'
 ╚══════════════════════════════════════════════════════════════╝
 EOF
 echo -e "${NC}"

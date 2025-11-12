@@ -9,9 +9,11 @@ This document summarizes the exploration of the cllm-mcp daemon architecture, co
 ## Documentation Files
 
 ### 1. DAEMON-ARCHITECTURE.md (Complete Technical Reference)
+
 **Use this when**: You need comprehensive, detailed understanding of how the system works.
 
 Contents:
+
 - Daemon initialization and startup process
 - Configuration discovery and loading pipeline
 - Socket communication protocol specification
@@ -22,6 +24,7 @@ Contents:
 - File responsibilities and line counts
 
 Key sections:
+
 - Section 1: Daemon initialization and what it knows
 - Section 2: Configuration loading and discovery
 - Section 3: Daemon protocol and communication format
@@ -34,9 +37,11 @@ Key sections:
 - Section 10: Current vs. target state
 
 ### 2. DAEMON-QUICK-REFERENCE.md (Quick Lookup Guide)
+
 **Use this when**: You need quick answers or are working on implementation.
 
 Contents:
+
 - Quick facts table (socket, communication, caching)
 - Daemon initialization at a glance
 - Configuration discovery order and format
@@ -51,9 +56,11 @@ Contents:
 - Architecture decisions explained
 
 ### 3. DAEMON-ARCHITECTURE-DIAGRAMS.txt (Visual Flowcharts)
+
 **Use this when**: You prefer visual representation or need to present the architecture.
 
 Contents:
+
 - Unified command dispatcher flow
 - Configuration discovery pipeline
 - Server reference resolution flowchart
@@ -71,34 +78,41 @@ Contents:
 ### Finding Answers
 
 **Q: How does the daemon start up?**
+
 - Quick answer: See DAEMON-QUICK-REFERENCE.md "Daemon Initialization"
 - Detailed answer: See DAEMON-ARCHITECTURE.md Section 1
 
 **Q: How are configuration files discovered?**
+
 - Quick answer: See DAEMON-QUICK-REFERENCE.md "Configuration System"
 - Detailed answer: See DAEMON-ARCHITECTURE.md Section 2
 - Visual: See DAEMON-ARCHITECTURE-DIAGRAMS.txt Section 2
 
 **Q: What is the daemon protocol?**
+
 - Quick answer: See DAEMON-QUICK-REFERENCE.md "Daemon Protocol"
 - Detailed answer: See DAEMON-ARCHITECTURE.md Section 3
 - Visual: See DAEMON-ARCHITECTURE-DIAGRAMS.txt Section 6 & 9
 
 **Q: How do clients and daemon communicate?**
+
 - Quick answer: See DAEMON-QUICK-REFERENCE.md "Information Flow"
 - Detailed answer: See DAEMON-ARCHITECTURE.md Section 4
 - Visual: See DAEMON-ARCHITECTURE-DIAGRAMS.txt Section 6
 
 **Q: How does the unified command dispatcher work?**
+
 - Quick answer: See DAEMON-QUICK-REFERENCE.md "Unified Command Dispatcher"
 - Detailed answer: See DAEMON-ARCHITECTURE.md Section 5
 - Visual: See DAEMON-ARCHITECTURE-DIAGRAMS.txt Section 1
 
 **Q: What's not yet integrated with configuration?**
+
 - Answer: See DAEMON-QUICK-REFERENCE.md "Current Gaps (Not Yet Implemented)"
 - Detailed: See DAEMON-ARCHITECTURE.md Section 7
 
 **Q: How do I test the architecture?**
+
 - Answer: See DAEMON-QUICK-REFERENCE.md "Testing Checklist"
 - Detailed: See DAEMON-ARCHITECTURE.md Section 8
 
@@ -107,14 +121,18 @@ Contents:
 ## Key Findings Summary
 
 ### 1. Daemon Initialization
+
 The daemon starts with minimal knowledge:
+
 - Socket path for listening
 - Empty server cache
 - No configuration awareness
 - Entirely reactive to client requests
 
 ### 2. Configuration System
+
 The configuration system is **fully implemented on the client side**:
+
 - Priority-based discovery (explicit > cwd > home > system)
 - JSON file format with server definitions
 - Comprehensive validation
@@ -122,27 +140,35 @@ The configuration system is **fully implemented on the client side**:
 - Environment variable and argument support
 
 ### 3. Daemon Protocol
+
 Communication is simple and clean:
+
 - Unix domain sockets
 - JSON message format with newline delimiters
 - Well-defined request types (start, call, list, status, etc.)
 - Deterministic server IDs (MD5 hash of command)
 
 ### 4. Information Architecture
+
 Clear separation between client and daemon:
+
 - **Client responsibilities**: Config discovery, server resolution, daemon detection
 - **Daemon responsibilities**: Process management, tool execution, result caching
 - **Not shared**: Config files, metadata, preferences
 
 ### 5. Unified Command Dispatcher
+
 Single entry point with automatic mode selection:
+
 - `cllm-mcp` command (from main.py)
 - Loads config, resolves references, detects daemon
 - Falls back to direct mode if daemon unavailable
 - Clean command routing tree
 
 ### 6. Configuration Integration Gaps
+
 Five key areas need daemon integration:
+
 1. Daemon configuration file loading
 2. Environment variable application
 3. Server auto-start on daemon startup
@@ -153,14 +179,14 @@ Five key areas need daemon integration:
 
 ## File Quick Reference
 
-| File | Purpose | Lines | Key Classes/Functions |
-|------|---------|-------|----------------------|
-| `mcp_daemon.py` | Daemon server | 436 | MCPDaemon, handle_request, start_server |
-| `mcp_cli.py` | Client implementation | 450 | MCPClient, daemon_list_tools, daemon_call_tool |
-| `cllm_mcp/main.py` | Unified dispatcher | 400 | create_parser, handle_list_tools, handle_call_tool |
-| `cllm_mcp/config.py` | Configuration management | 310 | find_config_file, load_config, resolve_server_ref |
-| `cllm_mcp/daemon_utils.py` | Daemon utilities | 71 | should_use_daemon, get_daemon_socket_path |
-| `cllm_mcp/socket_utils.py` | Socket communication | 186 | SocketClient, is_daemon_available |
+| File                       | Purpose                  | Lines | Key Classes/Functions                              |
+| -------------------------- | ------------------------ | ----- | -------------------------------------------------- |
+| `mcp_daemon.py`            | Daemon server            | 436   | MCPDaemon, handle_request, start_server            |
+| `mcp_cli.py`               | Client implementation    | 450   | MCPClient, daemon_list_tools, daemon_call_tool     |
+| `cllm_mcp/main.py`         | Unified dispatcher       | 400   | create_parser, handle_list_tools, handle_call_tool |
+| `cllm_mcp/config.py`       | Configuration management | 310   | find_config_file, load_config, resolve_server_ref  |
+| `cllm_mcp/daemon_utils.py` | Daemon utilities         | 71    | should_use_daemon, get_daemon_socket_path          |
+| `cllm_mcp/socket_utils.py` | Socket communication     | 186   | SocketClient, is_daemon_available                  |
 
 ---
 
@@ -171,6 +197,7 @@ Five key areas need daemon integration:
 The architecture intentionally keeps the daemon simple and configuration-agnostic:
 
 **Benefits:**
+
 - Daemon stays lightweight and focused
 - Multiple clients can share the same daemon
 - Configuration changes don't require daemon restart
@@ -178,6 +205,7 @@ The architecture intentionally keeps the daemon simple and configuration-agnosti
 - Direct mode works identically without daemon
 
 **Trade-offs:**
+
 - Clients must resolve server references
 - Daemon can't auto-start configured servers
 - Metadata lives on client side
@@ -189,6 +217,7 @@ The architecture intentionally keeps the daemon simple and configuration-agnosti
 ## Implementation Status
 
 ### Implemented (Green Light)
+
 - Unified `cllm-mcp` entry point
 - Configuration discovery and loading
 - Server reference resolution
@@ -198,6 +227,7 @@ The architecture intentionally keeps the daemon simple and configuration-agnosti
 - All command types (list, call, status, etc.)
 
 ### Not Yet Implemented (Red Light)
+
 - Daemon configuration file awareness
 - Environment variable application from config
 - Server auto-start on daemon startup
@@ -243,21 +273,25 @@ If you're working on completing the configuration integration:
 ## How to Use This Documentation
 
 ### For Understanding the Architecture
+
 1. Start with DAEMON-QUICK-REFERENCE.md for overview
 2. Read DAEMON-ARCHITECTURE-DIAGRAMS.txt for visual understanding
 3. Dive into DAEMON-ARCHITECTURE.md for detailed knowledge
 
 ### For Implementation Work
+
 1. Refer to DAEMON-QUICK-REFERENCE.md while coding
 2. Check DAEMON-ARCHITECTURE.md for protocol details
 3. Use DAEMON-ARCHITECTURE-DIAGRAMS.txt for verification
 
 ### For Debugging Issues
+
 1. Check DAEMON-QUICK-REFERENCE.md "Testing Checklist"
 2. Trace flow through DAEMON-ARCHITECTURE-DIAGRAMS.txt
 3. Look up specific behavior in DAEMON-ARCHITECTURE.md
 
 ### For Documentation/Presentation
+
 1. Use visuals from DAEMON-ARCHITECTURE-DIAGRAMS.txt
 2. Extract examples from DAEMON-ARCHITECTURE.md
 3. Reference quick facts from DAEMON-QUICK-REFERENCE.md
@@ -320,4 +354,4 @@ If you have questions or need clarification:
 
 ---
 
-*This exploration was conducted to understand the daemon architecture, configuration system, and identify integration points for full configuration support.*
+_This exploration was conducted to understand the daemon architecture, configuration system, and identify integration points for full configuration support._

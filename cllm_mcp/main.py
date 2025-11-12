@@ -1,5 +1,5 @@
 """
-Unified command dispatcher for cllm-mcp (ADR-0003).
+Unified command dispatcher for cllm-mcp (ADR-0003, ADR-0004).
 
 Routes commands to appropriate handlers with smart daemon detection.
 Supports:
@@ -7,28 +7,49 @@ Supports:
   - call-tool: Execute a specific MCP tool
   - interactive: Interactive REPL for exploring tools
   - daemon: Manage persistent daemon (start, stop, status, restart)
-  - config: Manage configurations (list, validate)
+  - config: Manage configurations (list, validate, show, migrate)
+
+Configuration follows CLLM-style precedence (ADR-0004):
+  1. ~/.cllm/mcp-config.json (global defaults)
+  2. ./.cllm/mcp-config.json (project-specific)
+  3. ./mcp-config.json (current directory)
+  4. CLLM_MCP_CONFIG environment variable
+  5. --config CLI argument (highest priority)
 """
 
-import sys
 import argparse
 import os
-from typing import Dict, Any
+import sys
+from typing import Any, Dict
 
 # Import handlers from existing modules
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
-from mcp_cli import cmd_list_tools, cmd_call_tool, cmd_interactive, daemon_list_all_tools
-from mcp_daemon import daemon_start, daemon_stop, daemon_status
-from cllm_mcp.daemon_utils import should_use_daemon, get_daemon_socket_path
-from cllm_mcp.socket_utils import get_daemon_config
 from cllm_mcp.config import (
-    cmd_config_list, cmd_config_validate, find_config_file, load_config,
-    validate_config, resolve_server_ref, ConfigError
+    ConfigError,
+    cmd_config_list,
+    cmd_config_migrate,
+    cmd_config_show,
+    cmd_config_validate,
+    find_config_file,
+    load_config,
+    resolve_server_ref,
+    validate_config,
 )
+from cllm_mcp.daemon_utils import get_daemon_socket_path, should_use_daemon
+from cllm_mcp.socket_utils import get_daemon_config
+from mcp_cli import (
+    cmd_call_tool,
+    cmd_interactive,
+    cmd_list_tools,
+    daemon_list_all_tools,
+)
+from mcp_daemon import daemon_start, daemon_status, daemon_stop
 
 
-def _display_all_daemon_tools(result: Dict[str, Any], json_output: bool = False) -> None:
+def _display_all_daemon_tools(
+    result: Dict[str, Any], json_output: bool = False
+) -> None:
     """Display all tools from all daemon servers."""
     import json as json_module
 
@@ -43,14 +64,16 @@ def _display_all_daemon_tools(result: Dict[str, Any], json_output: bool = False)
             print("No active servers in daemon")
             return
 
-        print(f"Tools from {server_count} active daemon server(s) ({total_tools} total tools):\n")
+        print(
+            f"Tools from {server_count} active daemon server(s) ({total_tools} total tools):\n"
+        )
 
         for server_id, server_data in servers.items():
             tools = server_data.get("tools", [])
             print(f"  Server: {server_id} ({len(tools)} tools)")
             for tool in tools:
                 print(f"    • {tool.get('name', 'unknown')}")
-                if tool.get('description'):
+                if tool.get("description"):
                     print(f"      {tool['description']}")
             print()
 
@@ -86,7 +109,7 @@ Examples:
 
   # Validate configuration
   cllm-mcp config validate
-        """
+        """,
     )
 
     # Global options
@@ -94,94 +117,77 @@ Examples:
         "--config",
         type=str,
         default=None,
-        help="Path to MCP configuration file (default: auto-discover)"
+        help="Path to MCP configuration file (default: auto-discover)",
     )
     parser.add_argument(
         "--socket",
         type=str,
         default=None,
-        help="Path to daemon socket (default: /tmp/mcp-daemon.sock)"
+        help="Path to daemon socket (default: /tmp/mcp-daemon.sock)",
     )
     parser.add_argument(
         "--no-daemon",
         action="store_true",
-        help="Force direct mode, don't use daemon even if available"
+        help="Force direct mode, don't use daemon even if available",
     )
     parser.add_argument(
         "--daemon-timeout",
         type=float,
         default=1.0,
-        help="Daemon detection timeout in seconds (default: 1.0)"
+        help="Daemon detection timeout in seconds (default: 1.0)",
     )
     parser.add_argument(
         "--verbose",
         action="store_true",
-        help="Print detailed output including mode selection"
+        help="Print detailed output including mode selection",
     )
 
     subparsers = parser.add_subparsers(dest="command", help="Command to run")
 
     # list-tools command
     list_tools_parser = subparsers.add_parser(
-        "list-tools",
-        help="List available tools from MCP server or all daemon servers"
+        "list-tools", help="List available tools from MCP server or all daemon servers"
     )
     list_tools_parser.add_argument(
         "server_command",
         nargs="?",
         default=None,
-        help="Command or name to start the MCP server (optional: omit to list all daemon tools)"
+        help="Command or name to start the MCP server (optional: omit to list all daemon tools)",
     )
-    list_tools_parser.add_argument(
-        "--json",
-        action="store_true",
-        help="Output as JSON"
-    )
+    list_tools_parser.add_argument("--json", action="store_true", help="Output as JSON")
     list_tools_parser.set_defaults(func=handle_list_tools)
 
     # call-tool command
     call_tool_parser = subparsers.add_parser(
-        "call-tool",
-        help="Execute a specific MCP tool"
+        "call-tool", help="Execute a specific MCP tool"
     )
     call_tool_parser.add_argument(
-        "server_command",
-        help="Command to start the MCP server"
+        "server_command", help="Command to start the MCP server"
     )
-    call_tool_parser.add_argument(
-        "tool_name",
-        help="Name of the tool to call"
-    )
-    call_tool_parser.add_argument(
-        "parameters",
-        help="JSON parameters for the tool"
-    )
+    call_tool_parser.add_argument("tool_name", help="Name of the tool to call")
+    call_tool_parser.add_argument("parameters", help="JSON parameters for the tool")
     call_tool_parser.set_defaults(func=handle_call_tool)
 
     # interactive command
     interactive_parser = subparsers.add_parser(
-        "interactive",
-        help="Interactive REPL for exploring and calling tools"
+        "interactive", help="Interactive REPL for exploring and calling tools"
     )
     interactive_parser.add_argument(
-        "server_command",
-        help="Command to start the MCP server"
+        "server_command", help="Command to start the MCP server"
     )
     interactive_parser.set_defaults(func=handle_interactive)
 
     # daemon subcommand
-    daemon_parser = subparsers.add_parser(
-        "daemon",
-        help="Manage MCP daemon"
-    )
+    daemon_parser = subparsers.add_parser("daemon", help="Manage MCP daemon")
     daemon_subparsers = daemon_parser.add_subparsers(
-        dest="daemon_command",
-        help="Daemon operation"
+        dest="daemon_command", help="Daemon operation"
     )
 
     # daemon start
     start_parser = daemon_subparsers.add_parser("start", help="Start daemon")
-    start_parser.add_argument("--foreground", action="store_true", help="Run daemon in foreground")
+    start_parser.add_argument(
+        "--foreground", action="store_true", help="Run daemon in foreground"
+    )
     # daemon stop
     daemon_subparsers.add_parser("stop", help="Stop daemon")
     # daemon status
@@ -193,31 +199,34 @@ Examples:
 
     # config subcommand
     config_parser = subparsers.add_parser(
-        "config",
-        help="Manage MCP server configurations"
+        "config", help="Manage MCP server configurations"
     )
     config_subparsers = config_parser.add_subparsers(
-        dest="config_command",
-        help="Configuration operation"
+        dest="config_command", help="Configuration operation"
     )
 
     # config list
     config_list_parser = config_subparsers.add_parser(
-        "list",
-        help="List configured servers"
+        "list", help="List configured servers"
     )
     config_list_parser.add_argument(
-        "--json",
-        action="store_true",
-        help="Output as JSON"
+        "--json", action="store_true", help="Output as JSON"
     )
     config_list_parser.set_defaults(func=handle_config)
 
     # config validate
+    config_subparsers.add_parser("validate", help="Validate configuration file")
+
+    # config show
     config_subparsers.add_parser(
-        "validate",
-        help="Validate configuration file"
+        "show", help="Show which configuration file is being used and its status"
     )
+
+    # config migrate
+    config_subparsers.add_parser(
+        "migrate", help="Migrate old config files to new .cllm folder structure"
+    )
+
     config_parser.set_defaults(func=handle_config)
 
     return parser
@@ -229,15 +238,17 @@ def handle_list_tools(args):
     if args.server_command is None:
         socket_path = get_daemon_socket_path(args.socket)
         is_daemon_available = should_use_daemon(
-            socket_path,
-            args.no_daemon,
-            args.daemon_timeout,
-            args.verbose
+            socket_path, args.no_daemon, args.daemon_timeout, args.verbose
         )
 
         if not is_daemon_available:
-            print("Error: No server specified and daemon is not available", file=sys.stderr)
-            print("Usage: cllm-mcp list-tools [server_name_or_command]", file=sys.stderr)
+            print(
+                "Error: No server specified and daemon is not available",
+                file=sys.stderr,
+            )
+            print(
+                "Usage: cllm-mcp list-tools [server_name_or_command]", file=sys.stderr
+            )
             sys.exit(1)
 
         # Try to get configured servers from daemon
@@ -248,12 +259,15 @@ def handle_list_tools(args):
 
             if args.json:
                 import json as json_module
+
                 print(json_module.dumps(servers, indent=2))
             else:
                 if server_count == 0:
                     print("No servers configured")
                 else:
-                    print(f"Available configured servers from daemon ({server_count} total):\n")
+                    print(
+                        f"Available configured servers from daemon ({server_count} total):\n"
+                    )
                     for server_name, server_config in servers.items():
                         print(f"  {server_name}")
                         if server_config.get("description"):
@@ -261,7 +275,9 @@ def handle_list_tools(args):
                         print(f"    Command: {server_config.get('command', 'unknown')}")
                         if server_config.get("args"):
                             print(f"    Args: {' '.join(server_config['args'])}")
-                        status = "running" if server_config.get("running") else "available"
+                        status = (
+                            "running" if server_config.get("running") else "available"
+                        )
                         print(f"    Status: {status}\n")
             return None
 
@@ -276,13 +292,18 @@ def handle_list_tools(args):
     # Try to load config and resolve server reference
     config = None
     try:
-        config_path = args.config or find_config_file()
+        if args.config:
+            config_path = args.config
+        else:
+            config_path, _ = find_config_file(verbose=args.verbose)
         if config_path:
             config = load_config(str(config_path))
             errors = validate_config(config)
             if errors:
                 if args.verbose:
-                    print("[config] Configuration is invalid, ignoring", file=sys.stderr)
+                    print(
+                        "[config] Configuration is invalid, ignoring", file=sys.stderr
+                    )
                 config = None
     except ConfigError:
         if args.verbose:
@@ -292,10 +313,7 @@ def handle_list_tools(args):
     # Detect and configure daemon early to potentially get server names from daemon config
     socket_path = get_daemon_socket_path(args.socket)
     use_daemon = should_use_daemon(
-        socket_path,
-        args.no_daemon,
-        args.daemon_timeout,
-        args.verbose
+        socket_path, args.no_daemon, args.daemon_timeout, args.verbose
     )
 
     # If no local config found but daemon is available, try to get config from daemon
@@ -317,7 +335,7 @@ def handle_list_tools(args):
     # Set args for the handler
     args.use_daemon = use_daemon
     args.daemon_socket = socket_path
-    args.json = getattr(args, 'json', False)
+    args.json = getattr(args, "json", False)
 
     return cmd_list_tools(args)
 
@@ -327,13 +345,18 @@ def handle_call_tool(args):
     # Try to load config and resolve server reference
     config = None
     try:
-        config_path = args.config or find_config_file()
+        if args.config:
+            config_path = args.config
+        else:
+            config_path, _ = find_config_file(verbose=args.verbose)
         if config_path:
             config = load_config(str(config_path))
             errors = validate_config(config)
             if errors:
                 if args.verbose:
-                    print("[config] Configuration is invalid, ignoring", file=sys.stderr)
+                    print(
+                        "[config] Configuration is invalid, ignoring", file=sys.stderr
+                    )
                 config = None
     except ConfigError:
         if args.verbose:
@@ -343,10 +366,7 @@ def handle_call_tool(args):
     # Detect and configure daemon early to potentially get server names from daemon config
     socket_path = get_daemon_socket_path(args.socket)
     use_daemon = should_use_daemon(
-        socket_path,
-        args.no_daemon,
-        args.daemon_timeout,
-        args.verbose
+        socket_path, args.no_daemon, args.daemon_timeout, args.verbose
     )
 
     # If no local config found but daemon is available, try to get config from daemon
@@ -388,7 +408,7 @@ def handle_daemon(args):
         daemon_args = argparse.Namespace(
             socket=socket_path,
             config=args.config,
-            foreground=getattr(args, 'foreground', False)
+            foreground=getattr(args, "foreground", False),
         )
         return daemon_start(daemon_args)
     elif args.daemon_command == "stop":
@@ -418,6 +438,10 @@ def handle_config(args):
         return cmd_config_list(args)
     elif args.config_command == "validate":
         return cmd_config_validate(args)
+    elif args.config_command == "show":
+        return cmd_config_show(args)
+    elif args.config_command == "migrate":
+        return cmd_config_migrate(args)
     else:
         print("Error: Unknown config command", file=sys.stderr)
         sys.exit(1)
@@ -429,7 +453,7 @@ def main():
     args = parser.parse_args()
 
     # If no command, show help
-    if not hasattr(args, 'func'):
+    if not hasattr(args, "func"):
         parser.print_help()
         sys.exit(1)
 

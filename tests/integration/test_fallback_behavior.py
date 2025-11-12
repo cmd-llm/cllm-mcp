@@ -1,8 +1,6 @@
 """Integration tests for daemon-to-direct fallback behavior."""
 
 import pytest
-import os
-from unittest.mock import MagicMock, patch
 
 
 class TestTransparentFallback:

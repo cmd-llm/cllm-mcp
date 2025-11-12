@@ -1,9 +1,6 @@
 """Unit tests for daemon detection logic (cllm_mcp/daemon_utils.py)."""
 
-import os
-import socket
 import pytest
-from unittest.mock import MagicMock, patch, Mock
 
 
 class TestDaemonDetection:

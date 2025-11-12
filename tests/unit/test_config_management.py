@@ -1,9 +1,6 @@
 """Unit tests for configuration management (cllm_mcp/config.py)."""
 
-import json
-import os
 import pytest
-from unittest.mock import MagicMock, patch, mock_open
 
 
 class TestConfigLoading:

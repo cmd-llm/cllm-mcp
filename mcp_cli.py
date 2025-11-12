@@ -22,19 +22,18 @@ Examples:
     ./mcp_cli.py interactive "npx -y @modelcontextprotocol/server-filesystem /tmp"
 """
 
-import sys
-import json
-import subprocess
 import argparse
-from typing import Dict, Any, List, Optional
-import shlex
 import hashlib
-
+import json
 import os
+import shlex
+import subprocess
+import sys
+from typing import Any, Dict, List, Optional
 
 # Add parent directory to path for imports from root
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
-from cllm_mcp.socket_utils import SocketClient, DAEMON_TOOL_TIMEOUT
+from cllm_mcp.socket_utils import DAEMON_TOOL_TIMEOUT, SocketClient
 
 
 class MCPClient:
@@ -60,26 +59,22 @@ class MCPClient:
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             text=True,
-            bufsize=1
+            bufsize=1,
         )
 
         # Initialize the connection
-        self._send_message({
-            "jsonrpc": "2.0",
-            "id": self._next_id(),
-            "method": "initialize",
-            "params": {
-                "protocolVersion": "2024-11-05",
-                "capabilities": {
-                    "roots": {"listChanged": True},
-                    "sampling": {}
+        self._send_message(
+            {
+                "jsonrpc": "2.0",
+                "id": self._next_id(),
+                "method": "initialize",
+                "params": {
+                    "protocolVersion": "2024-11-05",
+                    "capabilities": {"roots": {"listChanged": True}, "sampling": {}},
+                    "clientInfo": {"name": "mcp-cli", "version": "1.0.0"},
                 },
-                "clientInfo": {
-                    "name": "mcp-cli",
-                    "version": "1.0.0"
-                }
             }
-        })
+        )
 
         # Read initialize response
         response = self._read_message()
@@ -87,10 +82,9 @@ class MCPClient:
             raise Exception(f"Initialize error: {response['error']}")
 
         # Send initialized notification
-        self._send_notification({
-            "jsonrpc": "2.0",
-            "method": "notifications/initialized"
-        })
+        self._send_notification(
+            {"jsonrpc": "2.0", "method": "notifications/initialized"}
+        )
 
     def stop(self):
         """Stop the MCP server process."""
@@ -108,11 +102,9 @@ class MCPClient:
         Returns:
             List of tool definitions
         """
-        self._send_message({
-            "jsonrpc": "2.0",
-            "id": self._next_id(),
-            "method": "tools/list"
-        })
+        self._send_message(
+            {"jsonrpc": "2.0", "id": self._next_id(), "method": "tools/list"}
+        )
 
         response = self._read_message()
         if "error" in response:
@@ -131,15 +123,14 @@ class MCPClient:
         Returns:
             Tool execution result
         """
-        self._send_message({
-            "jsonrpc": "2.0",
-            "id": self._next_id(),
-            "method": "tools/call",
-            "params": {
-                "name": tool_name,
-                "arguments": arguments
+        self._send_message(
+            {
+                "jsonrpc": "2.0",
+                "id": self._next_id(),
+                "method": "tools/call",
+                "params": {"name": tool_name, "arguments": arguments},
             }
-        })
+        )
 
         response = self._read_message()
         if "error" in response:
@@ -187,7 +178,9 @@ def get_server_id(command: str) -> str:
     return hashlib.md5(command.encode()).hexdigest()[:12]
 
 
-def send_daemon_request(request: Dict[str, Any], socket_path: str = "/tmp/mcp-daemon.sock") -> Dict[str, Any]:
+def send_daemon_request(
+    request: Dict[str, Any], socket_path: str = "/tmp/mcp-daemon.sock"
+) -> Dict[str, Any]:
     """Send a request to the daemon and return the response."""
     try:
         client = SocketClient(socket_path, timeout=DAEMON_TOOL_TIMEOUT)
@@ -204,7 +197,9 @@ def send_daemon_request(request: Dict[str, Any], socket_path: str = "/tmp/mcp-da
         raise Exception(f"Daemon communication error: {e}")
 
 
-def daemon_list_tools(server_command: str, socket_path: str = "/tmp/mcp-daemon.sock") -> List[Dict[str, Any]]:
+def daemon_list_tools(
+    server_command: str, socket_path: str = "/tmp/mcp-daemon.sock"
+) -> List[Dict[str, Any]]:
     """List tools via daemon."""
     server_id = get_server_id(server_command)
 
@@ -212,41 +207,46 @@ def daemon_list_tools(server_command: str, socket_path: str = "/tmp/mcp-daemon.s
     start_request = {
         "command": "start",
         "server": server_id,
-        "server_command": server_command
+        "server_command": server_command,
     }
     start_response = send_daemon_request(start_request, socket_path)
 
     if not start_response.get("success"):
-        raise Exception(f"Failed to start server: {start_response.get('error', 'Unknown error')}")
+        raise Exception(
+            f"Failed to start server: {start_response.get('error', 'Unknown error')}"
+        )
 
     # List tools
-    list_request = {
-        "command": "list",
-        "server": server_id
-    }
+    list_request = {"command": "list", "server": server_id}
     list_response = send_daemon_request(list_request, socket_path)
 
     if not list_response.get("success"):
-        raise Exception(f"Failed to list tools: {list_response.get('error', 'Unknown error')}")
+        raise Exception(
+            f"Failed to list tools: {list_response.get('error', 'Unknown error')}"
+        )
 
     return list_response.get("tools", [])
 
 
 def daemon_list_all_tools(socket_path: str = "/tmp/mcp-daemon.sock") -> Dict[str, Any]:
     """List all tools from all running daemon servers."""
-    list_request = {
-        "command": "list-all"
-    }
+    list_request = {"command": "list-all"}
     response = send_daemon_request(list_request, socket_path)
 
     if not response.get("success"):
-        raise Exception(f"Failed to list tools: {response.get('error', 'Unknown error')}")
+        raise Exception(
+            f"Failed to list tools: {response.get('error', 'Unknown error')}"
+        )
 
     return response
 
 
-def daemon_call_tool(server_command: str, tool_name: str, arguments: Dict[str, Any],
-                     socket_path: str = "/tmp/mcp-daemon.sock") -> Any:
+def daemon_call_tool(
+    server_command: str,
+    tool_name: str,
+    arguments: Dict[str, Any],
+    socket_path: str = "/tmp/mcp-daemon.sock",
+) -> Any:
     """Call a tool via daemon."""
     server_id = get_server_id(server_command)
 
@@ -254,25 +254,27 @@ def daemon_call_tool(server_command: str, tool_name: str, arguments: Dict[str, A
     start_request = {
         "command": "start",
         "server": server_id,
-        "server_command": server_command
+        "server_command": server_command,
     }
     start_response = send_daemon_request(start_request, socket_path)
 
     if not start_response.get("success"):
-        raise Exception(f"Failed to start server: {start_response.get('error', 'Unknown error')}")
+        raise Exception(
+            f"Failed to start server: {start_response.get('error', 'Unknown error')}"
+        )
 
     # Call tool
     call_request = {
         "command": "call",
         "server": server_id,
         "tool": tool_name,
-        "arguments": arguments
+        "arguments": arguments,
     }
     call_response = send_daemon_request(call_request, socket_path)
 
     if not call_response.get("success"):
-        error = call_response.get('error', 'Unknown error')
-        if call_response.get('retry'):
+        error = call_response.get("error", "Unknown error")
+        if call_response.get("retry"):
             raise Exception(f"Server crashed: {error}. Try again.")
         raise Exception(f"Tool call failed: {error}")
 
@@ -304,9 +306,9 @@ def cmd_list_tools(args):
         print(f"Available tools from: {args.server_command}\n")
         for tool in tools:
             print(f"  • {tool['name']}")
-            if 'description' in tool:
+            if "description" in tool:
                 print(f"    {tool['description']}")
-            if 'inputSchema' in tool:
+            if "inputSchema" in tool:
                 print(f"    Parameters: {json.dumps(tool['inputSchema'], indent=6)}")
             print()
 
@@ -323,7 +325,9 @@ def cmd_call_tool(args):
     if args.use_daemon:
         # Use daemon mode
         try:
-            result = daemon_call_tool(args.server_command, args.tool_name, params, args.daemon_socket)
+            result = daemon_call_tool(
+                args.server_command, args.tool_name, params, args.daemon_socket
+            )
             print(json.dumps(result, indent=2))
         except Exception as e:
             print(f"Error: {e}", file=sys.stderr)
@@ -365,7 +369,7 @@ def cmd_interactive(args):
                     print("\nAvailable tools:")
                     for tool in tools:
                         print(f"  • {tool['name']}")
-                        if 'description' in tool:
+                        if "description" in tool:
                             print(f"    {tool['description']}")
                     print()
 
@@ -387,7 +391,9 @@ def cmd_interactive(args):
                     print()
 
                 else:
-                    print("Unknown command. Available: list, call <tool_name> <json_params>, quit")
+                    print(
+                        "Unknown command. Available: list, call <tool_name> <json_params>, quit"
+                    )
 
             except KeyboardInterrupt:
                 print("\nUse 'quit' to exit")
@@ -403,7 +409,7 @@ def main():
     parser = argparse.ArgumentParser(
         description="MCP CLI - Make MCP tool calls without an LLM",
         formatter_class=argparse.RawDescriptionHelpFormatter,
-        epilog=__doc__
+        epilog=__doc__,
     )
 
     subparsers = parser.add_subparsers(dest="command", help="Command to execute")
@@ -412,24 +418,38 @@ def main():
     list_parser = subparsers.add_parser("list-tools", help="List all available tools")
     list_parser.add_argument("server_command", help="Command to start MCP server")
     list_parser.add_argument("--json", action="store_true", help="Output as JSON")
-    list_parser.add_argument("--use-daemon", action="store_true",
-                            help="Use daemon mode for faster repeated calls")
-    list_parser.add_argument("--daemon-socket", default="/tmp/mcp-daemon.sock",
-                            help="Daemon socket path (default: /tmp/mcp-daemon.sock)")
+    list_parser.add_argument(
+        "--use-daemon",
+        action="store_true",
+        help="Use daemon mode for faster repeated calls",
+    )
+    list_parser.add_argument(
+        "--daemon-socket",
+        default="/tmp/mcp-daemon.sock",
+        help="Daemon socket path (default: /tmp/mcp-daemon.sock)",
+    )
 
     # call-tool command
     call_parser = subparsers.add_parser("call-tool", help="Call a specific tool")
     call_parser.add_argument("server_command", help="Command to start MCP server")
     call_parser.add_argument("tool_name", help="Name of the tool to call")
     call_parser.add_argument("parameters", help="JSON string of tool parameters")
-    call_parser.add_argument("--use-daemon", action="store_true",
-                            help="Use daemon mode for faster repeated calls")
-    call_parser.add_argument("--daemon-socket", default="/tmp/mcp-daemon.sock",
-                            help="Daemon socket path (default: /tmp/mcp-daemon.sock)")
+    call_parser.add_argument(
+        "--use-daemon",
+        action="store_true",
+        help="Use daemon mode for faster repeated calls",
+    )
+    call_parser.add_argument(
+        "--daemon-socket",
+        default="/tmp/mcp-daemon.sock",
+        help="Daemon socket path (default: /tmp/mcp-daemon.sock)",
+    )
 
     # interactive command
     interactive_parser = subparsers.add_parser("interactive", help="Interactive mode")
-    interactive_parser.add_argument("server_command", help="Command to start MCP server")
+    interactive_parser.add_argument(
+        "server_command", help="Command to start MCP server"
+    )
 
     args = parser.parse_args()
 

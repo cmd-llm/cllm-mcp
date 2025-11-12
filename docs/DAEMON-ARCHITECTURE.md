@@ -9,6 +9,7 @@ The cllm-mcp project implements a unified Model Context Protocol (MCP) command-l
 ## 1. Current Daemon Initialization and Configuration
 
 ### Entry Points
+
 - **Main unified entry**: `cllm-mcp` (from `cllm_mcp/main.py`)
 - **Legacy aliases** (for backward compatibility, not yet configured in pyproject.toml):
   - `mcp-cli` (from `mcp_cli.py`)
@@ -17,6 +18,7 @@ The cllm-mcp project implements a unified Model Context Protocol (MCP) command-l
 ### Daemon Initialization Flow
 
 #### What MCPDaemon Knows At Startup
+
 1. **Socket path** - Unix domain socket location for IPC
    - Default: `/tmp/mcp-daemon.sock`
    - Configurable via command-line: `--socket PATH`
@@ -25,7 +27,6 @@ The cllm-mcp project implements a unified Model Context Protocol (MCP) command-l
 2. **Server cache** - Dictionary mapping server IDs to MCPClient instances
    - Key: MD5 hash of server command (first 12 chars)
    - Value: Active MCPClient object managing the subprocess
-   
 3. **Process management state**
    - Lock mechanism for thread-safe operations
    - Running flag for graceful shutdown
@@ -47,6 +48,7 @@ The cllm-mcp project implements a unified Model Context Protocol (MCP) command-l
 ```
 
 ### What Daemon Does NOT Know Initially
+
 - Configuration files (config.json)
 - Server definitions (commands, args, env vars)
 - Which servers should be auto-started
@@ -130,6 +132,7 @@ build_server_command(server_config)
 #### Example Usage Flows
 
 **Scenario 1: Named server from config**
+
 ```
 Input: "time" (server name from config)
 Config contains: {
@@ -144,6 +147,7 @@ resolve_server_ref("time", config)
 ```
 
 **Scenario 2: Direct command (no config)**
+
 ```
 Input: "uvx mcp-server-time" (full command)
 resolve_server_ref("uvx mcp-server-time", None)
@@ -151,6 +155,7 @@ resolve_server_ref("uvx mcp-server-time", None)
 ```
 
 **Scenario 3: Config not found**
+
 ```
 find_config_file() returns None
   └─ No config available
@@ -205,6 +210,7 @@ DAEMON_CTRL_TIMEOUT = 5.0       # Control commands (stop, status)
 #### 1. Server Management
 
 **Start Server**
+
 ```json
 {
   "command": "start",
@@ -217,6 +223,7 @@ Response: {"success": true, "message": "..."}
 ```
 
 **Stop Server**
+
 ```json
 {
   "command": "stop",
@@ -229,6 +236,7 @@ Response: {"success": true, "message": "..."}
 #### 2. Tool Operations
 
 **Call Tool**
+
 ```json
 {
   "command": "call",
@@ -242,6 +250,7 @@ Response: {"success": true, "result": {...}}
 ```
 
 **List Tools**
+
 ```json
 {
   "command": "list",
@@ -258,6 +267,7 @@ Response: {"success": true, "tools": [
 ```
 
 **List All Tools (All Servers)**
+
 ```json
 {
   "command": "list-all"
@@ -279,6 +289,7 @@ Response: {
 #### 3. Daemon Control
 
 **Get Status**
+
 ```json
 {
   "command": "status"
@@ -292,6 +303,7 @@ Response: {
 ```
 
 **Shutdown**
+
 ```json
 {
   "command": "shutdown"
@@ -303,11 +315,13 @@ Response: {"success": true, "message": "Daemon shutting down"}
 ### Server ID Generation
 
 Server IDs are deterministic MD5 hashes of the command string:
+
 ```python
 server_id = hashlib.md5(command.encode()).hexdigest()[:12]
 ```
 
 This ensures:
+
 - Same command always gets same ID
 - Different commands get different IDs
 - Multiple calls to same command reuse cached server
@@ -347,6 +361,7 @@ This ensures:
 ### What Is NOT Shared
 
 The daemon intentionally does NOT receive:
+
 - Configuration file paths
 - Configuration file contents
 - Server descriptions or metadata
@@ -366,15 +381,12 @@ The main.py module implements the unified command dispatcher that routes all ope
 1. **Global configuration**
    - Config file discovery and loading
    - Configuration validation
-   
 2. **Daemon detection**
    - Check if daemon is running and responsive
    - Graceful fallback to direct mode
-   
 3. **Server reference resolution**
    - Convert server names to full commands
    - Use config if available, literal command if not
-   
 4. **Mode selection**
    - Automatically choose daemon vs. direct mode
    - Respect --no-daemon flag
@@ -466,22 +478,28 @@ cllm-mcp config validate
 ### Where Configuration is Needed
 
 #### 1. Server Command Resolution (main.py, line 267)
+
 ```python
 resolved_command, server_name = resolve_server_ref(args.server_command, config)
 ```
+
 Clients pass server names instead of full commands.
 
 #### 2. Daemon Initialization (mcp_daemon.py)
+
 Currently: NOT integrated - daemon receives full commands only
 
 **Integration needed for**:
+
 - Auto-starting configured servers on daemon startup
 - Server health checks using config metadata
 - Applying environment variables from config
 - Server descriptions in status output
 
 #### 3. Environment Variable Application
+
 Config supports per-server environment variables:
+
 ```json
 {
   "env": {
@@ -495,7 +513,9 @@ Config supports per-server environment variables:
 **Integration needed**: Daemon should apply when starting servers
 
 #### 4. Server Arguments
+
 Config supports per-server command arguments:
+
 ```json
 {
   "command": "python -m my_server",
@@ -507,7 +527,9 @@ Config supports per-server command arguments:
 **Status**: READY to use, client-side
 
 #### 5. Server Descriptions
+
 Config supports metadata:
+
 ```json
 {
   "description": "Provides access to local filesystem"
@@ -522,8 +544,10 @@ Config supports metadata:
 ## 7. Current Architecture Gaps and Next Steps
 
 ### Gap 1: Daemon Configuration Loading
+
 **Current**: Daemon has zero knowledge of config files
 **Needed**: Option to pre-load servers from config on startup
+
 ```bash
 cllm-mcp daemon start --config /etc/mcp-config.json
   └─ Should auto-start configured servers
@@ -531,18 +555,22 @@ cllm-mcp daemon start --config /etc/mcp-config.json
 ```
 
 ### Gap 2: Environment Variable Application
+
 **Current**: Config defines env vars but daemon ignores them
 **Needed**: When starting server subprocess, apply env vars from config
 
 ### Gap 3: Server Auto-Registration
+
 **Current**: Servers only exist after client requests them
 **Needed**: Option to auto-start configured servers at daemon startup
 
 ### Gap 4: Configuration Hot-Reload
+
 **Current**: No way to update config without restarting daemon
 **Potential**: Add `cllm-mcp daemon reload-config` command
 
 ### Gap 5: Configuration Status in Daemon
+
 **Current**: Daemon status doesn't show config-based metadata
 **Needed**: Display server descriptions, args, env vars in `daemon status` output
 
@@ -551,6 +579,7 @@ cllm-mcp daemon start --config /etc/mcp-config.json
 ## 8. Testing the Current Architecture
 
 ### Manual Test: Config Discovery
+
 ```bash
 # Create config in current directory
 echo '{"mcpServers": {"test": {"command": "echo hello"}}}' > mcp-config.json
@@ -564,6 +593,7 @@ cllm-mcp --config /tmp/other-config.json config list
 ```
 
 ### Manual Test: Daemon Detection
+
 ```bash
 # Start daemon
 cllm-mcp daemon start
@@ -585,6 +615,7 @@ cllm-mcp --verbose list-tools "uvx mcp-server-time"
 ```
 
 ### Manual Test: Configuration Resolution
+
 ```bash
 # With server name from config
 cllm-mcp list-tools "time"
@@ -599,20 +630,21 @@ cllm-mcp list-tools "uvx mcp-server-time"
 
 ## 9. Key Files and Their Responsibilities
 
-| File | Lines | Purpose |
-|------|-------|---------|
-| `mcp_daemon.py` | 436 | Daemon server implementation, request handling, server caching |
-| `mcp_cli.py` | 450 | Client implementation, direct mode and daemon client functions |
-| `cllm_mcp/main.py` | 400 | Unified dispatcher, command routing, daemon detection |
-| `cllm_mcp/config.py` | 310 | Configuration loading, validation, server resolution |
-| `cllm_mcp/daemon_utils.py` | 71 | Daemon availability checking, socket path resolution |
-| `cllm_mcp/socket_utils.py` | 186 | Socket communication protocol, client implementation |
+| File                       | Lines | Purpose                                                        |
+| -------------------------- | ----- | -------------------------------------------------------------- |
+| `mcp_daemon.py`            | 436   | Daemon server implementation, request handling, server caching |
+| `mcp_cli.py`               | 450   | Client implementation, direct mode and daemon client functions |
+| `cllm_mcp/main.py`         | 400   | Unified dispatcher, command routing, daemon detection          |
+| `cllm_mcp/config.py`       | 310   | Configuration loading, validation, server resolution           |
+| `cllm_mcp/daemon_utils.py` | 71    | Daemon availability checking, socket path resolution           |
+| `cllm_mcp/socket_utils.py` | 186   | Socket communication protocol, client implementation           |
 
 ---
 
 ## 10. Summary: Current State vs. Target State
 
 ### Current (As of main branch)
+
 - Unified `cllm-mcp` entry point EXISTS
 - Config discovery and loading: IMPLEMENTED
 - Server reference resolution: IMPLEMENTED
@@ -621,6 +653,7 @@ cllm-mcp list-tools "uvx mcp-server-time"
 - Daemon communication protocol: STABLE
 
 ### Still Needed for Full Integration
+
 - [ ] Daemon configuration file awareness (--config on daemon start)
 - [ ] Environment variable application from config
 - [ ] Configuration-based server auto-start
@@ -629,4 +662,3 @@ cllm-mcp list-tools "uvx mcp-server-time"
 - [ ] Backward compatibility aliases in pyproject.toml (mcp-cli, mcp-daemon)
 
 ---
-

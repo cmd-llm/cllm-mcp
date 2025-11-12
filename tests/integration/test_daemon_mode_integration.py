@@ -1,10 +1,6 @@
 """Integration tests for daemon mode operation."""
 
-import json
 import pytest
-import socket
-import time
-from unittest.mock import MagicMock, patch
 
 
 class TestDaemonModeIntegration:

@@ -17,19 +17,19 @@ NC='\033[0m' # No Color
 
 # Get the directory where this script is located
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
+PROJECT_ROOT="$(dirname "${SCRIPT_DIR}")"
 
 echo -e "${BLUE}=== MCP Daemon Setup with Datetime Server ===${NC}"
 echo ""
 
-cd "$PROJECT_ROOT"
+cd "${PROJECT_ROOT}"
 
 # Step 1: Create configuration file
 echo -e "${GREEN}Step 1: Creating configuration file...${NC}"
 CONFIG_FILE="mcp-config.json"
 
 # Create a config file with the datetime MCP server
-cat > "$CONFIG_FILE" << 'EOF'
+cat >"${CONFIG_FILE}" <<'EOF'
 {
   "mcpServers": {
     "time": {
@@ -46,18 +46,18 @@ cat > "$CONFIG_FILE" << 'EOF'
 }
 EOF
 
-echo "Created $CONFIG_FILE with the following servers:"
-cat "$CONFIG_FILE" | jq '.mcpServers | keys'
+echo "Created ${CONFIG_FILE} with the following servers:"
+cat "${CONFIG_FILE}" | jq '.mcpServers | keys'
 echo ""
 
 # Step 2: Validate configuration
 echo -e "${GREEN}Step 2: Validating configuration...${NC}"
-uv run cllm-mcp --config "$CONFIG_FILE" config validate
+uv run cllm-mcp --config "${CONFIG_FILE}" config validate
 echo ""
 
 # Step 3: List configured servers
 echo -e "${GREEN}Step 3: Configured servers:${NC}"
-uv run cllm-mcp --config "$CONFIG_FILE" config list
+uv run cllm-mcp --config "${CONFIG_FILE}" config list
 echo ""
 
 # Step 4: Start daemon
@@ -67,14 +67,14 @@ echo ""
 echo "While the daemon is running, you can use it in another terminal:"
 echo ""
 echo "  # List available time tools"
-echo "  uv run cllm-mcp --config $CONFIG_FILE list-tools \"uvx mcp-server-time\""
+echo "  uv run cllm-mcp --config ${CONFIG_FILE} list-tools \"uvx mcp-server-time\""
 echo ""
 echo "  # Get current time (timezone is required)"
-echo "  uv run cllm-mcp --config $CONFIG_FILE call-tool \"uvx mcp-server-time\" \\"
+echo "  uv run cllm-mcp --config ${CONFIG_FILE} call-tool \"uvx mcp-server-time\" \\"
 echo "    \"get_current_time\" '{\"timezone\": \"UTC\"}'"
 echo ""
 echo "  # Get time in a specific timezone"
-echo "  uv run cllm-mcp --config $CONFIG_FILE call-tool \"uvx mcp-server-time\" \\"
+echo "  uv run cllm-mcp --config ${CONFIG_FILE} call-tool \"uvx mcp-server-time\" \\"
 echo "    \"get_current_time\" '{\"timezone\": \"America/New_York\"}'"
 echo ""
 echo "  # Check daemon status"

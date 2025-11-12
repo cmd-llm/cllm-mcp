@@ -41,6 +41,7 @@ This separation creates friction in the user experience:
 ### Current Architecture Issues
 
 **Multiple command patterns:**
+
 ```bash
 # Direct mode (current default)
 mcp-cli list-tools "python -m server"
@@ -54,6 +55,7 @@ mcp-daemon stop
 ```
 
 **The ideal flow should be:**
+
 ```bash
 # Single unified command
 cllm-mcp list-tools "python -m server"           # Auto-uses daemon if available
@@ -103,29 +105,34 @@ Commands:
 ### Operational Modes
 
 #### Mode 1: Direct Execution (Default, Transparent)
+
 ```bash
 # Run tool immediately, spawn server if needed
 $ cllm-mcp list-tools "python -m my_server"
 ```
 
 **Behavior:**
+
 1. Check if daemon is available (socket exists and responds)
 2. If available: Use daemon to call tools (fast)
 3. If unavailable: Spawn direct subprocess (degraded but functional)
 4. No user configuration needed
 
 #### Mode 2: Explicit Direct Mode
+
 ```bash
 # Force direct mode without daemon, even if available
 $ cllm-mcp --no-daemon list-tools "python -m my_server"
 ```
 
 **Behavior:**
+
 - Always spawn new server process
 - Useful for debugging or when daemon is misbehaving
 - Predictable performance characteristics
 
 #### Mode 3: Daemon Mode (Explicit Control)
+
 ```bash
 # Start the daemon
 $ cllm-mcp daemon start
@@ -142,6 +149,7 @@ $ cllm-mcp daemon stop
 ```
 
 **Behavior:**
+
 - Explicit daemon lifecycle control
 - All tool calls automatically use daemon when running
 - Server processes cached across calls
@@ -150,6 +158,7 @@ $ cllm-mcp daemon stop
 ### Implementation Details
 
 #### Phase 1: Unified Command Wrapper
+
 Create a new `cllm-mcp` entry point that dispatches to existing code:
 
 ```python
@@ -175,12 +184,14 @@ def main():
 ```
 
 **Key features:**
+
 - Minimal new code, reuses existing logic
 - Global socket path management
 - Consistent timeout handling
 - Error messages guide users to solutions
 
 #### Phase 2: Smart Daemon Detection
+
 Enhance existing daemon client code to auto-detect availability:
 
 ```python
@@ -204,11 +215,13 @@ def should_use_daemon(socket_path: str, no_daemon_flag: bool) -> bool:
 ```
 
 **Graceful fallback:**
+
 - If daemon is not responding, silently fall back to direct mode
 - Log message indicates fallback occurred (for debugging)
 - User never sees error unless `--verbose` flag used
 
 #### Phase 3: Configuration Management
+
 New subcommand for config validation and discovery:
 
 ```bash
@@ -243,12 +256,14 @@ mcp-daemon = "cllm_mcp.daemon:main"
 ### Backward Compatibility
 
 The existing `mcp-cli` and `mcp-daemon` commands remain unchanged:
+
 - All existing scripts and integrations continue to work
 - No breaking changes to command-line interfaces
 - Users can migrate at their own pace
 - Documentation encourages migration to `cllm-mcp`
 
 **Migration path:**
+
 ```bash
 # Old way (still works)
 mcp-cli list-tools ...
@@ -291,32 +306,41 @@ cllm-mcp daemon start
 ## Alternatives Considered
 
 ### 1. Keep Separate Commands (Current State)
+
 **Pros:**
+
 - No migration effort needed
 - Clear separation of concerns
 
 **Cons:**
+
 - Continued friction in user experience
 - Daemon benefits not transparent
 - Configuration wrapper adds indirection
 
 ### 2. Replace mcp-cli with mcp-daemon (All-in-One Daemon)
+
 **Pros:**
+
 - Truly single command
 - Daemon always available
 
 **Cons:**
+
 - Breaking change: existing scripts break
 - Daemon startup overhead for simple one-off operations
 - Harder to use in containers/ephemeral environments
 - Forces daemon complexity on all users
 
 ### 3. Configuration-Only Approach
+
 **Pros:**
+
 - Simpler implementation
 - Focuses on configuration management
 
 **Cons:**
+
 - Doesn't address the fundamental UX issue
 - Still need to manage two command names
 - Doesn't reduce cognitive load
@@ -335,6 +359,7 @@ cllm-mcp daemon start
 ## Implementation Notes
 
 ### Phase 1: MVP (Critical Path)
+
 1. Create `cllm_mcp/main.py` with unified dispatcher
 2. Extract daemon detection logic into reusable function
 3. Update `pyproject.toml` to add `cllm-mcp` entry point
@@ -342,18 +367,21 @@ cllm-mcp daemon start
 5. Add examples of unified command usage
 
 ### Phase 2: Polish
+
 1. Add `--verbose` flag for debugging daemon selection
 2. Implement config management subcommand
 3. Add health check to daemon status
 4. Create migration guide from `mcp-cli` to `cllm-mcp`
 
 ### Phase 3: Ecosystem
+
 1. Update `mcp-wrapper.sh` to use `cllm-mcp` by default
 2. Add shell completions for `cllm-mcp`
 3. Create quick-start guide emphasizing single command
 4. Deprecate `mcp-daemon` in favor of `cllm-mcp daemon`
 
 ### Code Structure
+
 ```
 cllm_mcp/
 ├── main.py              # New unified dispatcher

@@ -1,8 +1,6 @@
 """Integration tests for direct mode operation."""
 
 import pytest
-import subprocess
-from unittest.mock import MagicMock, patch
 
 
 class TestDirectModeIntegration:

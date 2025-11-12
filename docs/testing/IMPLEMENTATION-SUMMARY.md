@@ -7,9 +7,11 @@ Complete testing infrastructure for ADR-0003 (Unified Daemon/Client Command Arch
 ## What Was Created
 
 ### 1. Test Strategy Document
+
 **File**: `docs/testing/ADR-0003-testing-strategy.md`
 
 Comprehensive testing strategy covering:
+
 - Testing framework (pytest with unittest.mock)
 - Test structure and organization
 - 11 test categories with 150+ test cases
@@ -21,6 +23,7 @@ Comprehensive testing strategy covering:
 ### 2. Test Infrastructure Files
 
 #### Shared Configuration
+
 - **tests/conftest.py** - Central pytest configuration
   - MockMCPServer class for simulating MCP server behavior
   - 10+ pytest fixtures for testing
@@ -28,6 +31,7 @@ Comprehensive testing strategy covering:
   - Custom pytest markers
 
 #### Unit Test Files
+
 - **tests/unit/test_main_dispatcher.py** (45 test cases)
   - Command dispatcher routing
   - Global options handling
@@ -50,6 +54,7 @@ Comprehensive testing strategy covering:
   - Edge cases
 
 #### Integration Test Files
+
 - **tests/integration/test_daemon_mode_integration.py** (35 test cases)
   - End-to-end daemon operation
   - Performance characteristics
@@ -75,9 +80,11 @@ Comprehensive testing strategy covering:
 ### 3. Documentation Files
 
 #### Testing Guide
+
 **File**: `docs/testing/TESTING-GUIDE.md`
 
 Practical reference for developers:
+
 - Quick start commands
 - Test organization and discovery
 - Running tests by category
@@ -87,9 +94,11 @@ Practical reference for developers:
 - How to write new tests
 
 #### Testing README
+
 **File**: `docs/testing/README.md`
 
 Overview of testing documentation:
+
 - Test structure summary
 - Quick start guide
 - Test coverage goals
@@ -101,6 +110,7 @@ Overview of testing documentation:
 ### 4. Configuration Updates
 
 #### pyproject.toml Updates
+
 - Added pytest and pytest-mock to dev-dependencies
 - Configured pytest discovery patterns
 - Set up test markers (unit, integration, slow, socket, daemon)
@@ -108,9 +118,11 @@ Overview of testing documentation:
 - Defined coverage exclusions
 
 #### GitHub Actions Workflow
+
 **File**: `.github/workflows/tests.yml`
 
 Complete CI/CD pipeline:
+
 - Tests on Python 3.7-3.12
 - Unit and integration test execution
 - Coverage report generation
@@ -120,25 +132,28 @@ Complete CI/CD pipeline:
 ## Test Statistics
 
 ### Test Count
+
 - **Unit Tests**: 120 test cases
 - **Integration Tests**: 105 test cases
 - **Total**: 203 test cases across 5 files
 
 ### Coverage by Component
-| Component | Test Cases | Coverage Target |
-|-----------|-----------|-----------------|
-| Command Dispatcher | 45 | 100% (critical) |
-| Daemon Detection | 40 | 100% (critical) |
-| Config Management | 35 | 90% |
-| Daemon Mode | 35 | 85% |
-| Direct Mode | 40 | 85% |
-| Fallback Behavior | 30 | 100% (critical) |
-| Performance | 20+ | N/A |
-| Error Handling | 25+ | 90% |
+
+| Component          | Test Cases | Coverage Target |
+| ------------------ | ---------- | --------------- |
+| Command Dispatcher | 45         | 100% (critical) |
+| Daemon Detection   | 40         | 100% (critical) |
+| Config Management  | 35         | 90%             |
+| Daemon Mode        | 35         | 85%             |
+| Direct Mode        | 40         | 85%             |
+| Fallback Behavior  | 30         | 100% (critical) |
+| Performance        | 20+        | N/A             |
+| Error Handling     | 25+        | 90%             |
 
 ### Test Organization
 
 By Type:
+
 - **Unit tests**: 120 (fast, isolated)
 - **Integration tests**: 105 (slower, interactive)
 - **Marked as slow**: ~15 tests
@@ -146,6 +161,7 @@ By Type:
 - **Marked as socket**: ~20 tests
 
 By Feature:
+
 - **Command dispatch**: 45 tests
 - **Daemon operations**: 60+ tests
 - **Configuration**: 35 tests
@@ -155,6 +171,7 @@ By Feature:
 ## Key Features of Test Suite
 
 ### 1. Comprehensive Fixtures
+
 ```python
 @pytest.fixture
 def temp_socket_path()              # Unique socket path per test
@@ -169,6 +186,7 @@ def mock_subprocess(mocker)         # Mocked process spawning
 ```
 
 ### 2. Test Data Constants
+
 ```python
 SAMPLE_TOOLS                        # Sample MCP tool definitions
 SAMPLE_TOOL_RESPONSE                # Sample tool response format
@@ -176,6 +194,7 @@ SAMPLE_CONFIG                       # Sample configuration object
 ```
 
 ### 3. Custom Pytest Markers
+
 ```bash
 @pytest.mark.unit                   # Unit tests
 @pytest.mark.integration            # Integration tests
@@ -185,6 +204,7 @@ SAMPLE_CONFIG                       # Sample configuration object
 ```
 
 ### 4. MockMCPServer Class
+
 - Simulates MCP server behavior
 - Configurable tools and responses
 - Simulates crashes
@@ -193,12 +213,14 @@ SAMPLE_CONFIG                       # Sample configuration object
 ## Running the Tests
 
 ### Install Dependencies
+
 ```bash
 cd /Users/owenzanzal/Projects/cllm-mcp
 uv sync  # Installs pytest and pytest-mock
 ```
 
 ### Quick Test Runs
+
 ```bash
 # All tests
 uv run pytest tests/ -v
@@ -214,6 +236,7 @@ uv run pytest tests/unit/test_daemon_detection.py::TestDaemonDetection::test_dae
 ```
 
 ### Coverage Analysis
+
 ```bash
 # Generate HTML coverage report
 uv run pytest tests/ --cov=cllm_mcp --cov-report=html
@@ -226,6 +249,7 @@ uv run pytest tests/ --cov=cllm_mcp --cov-fail-under=85
 ```
 
 ### Test Discovery
+
 ```bash
 # List all tests
 uv run pytest tests/ --collect-only -q
@@ -236,17 +260,18 @@ uv run pytest tests/ -k "daemon" --collect-only
 
 ## Test Execution Matrix
 
-| Scenario | Unit | Integration | Command |
-|----------|------|-------------|---------|
-| Fast iteration | ✅ | ❌ | `pytest tests/unit/ -v` |
-| Full suite | ✅ | ✅ | `pytest tests/ -v` |
-| With coverage | ✅ | ✅ | `pytest tests/ --cov` |
-| CI/CD | ✅ | ✅ | `.github/workflows/tests.yml` |
-| Daemon tests | ❌ | ✅ | `pytest -m daemon -v` |
+| Scenario       | Unit | Integration | Command                       |
+| -------------- | ---- | ----------- | ----------------------------- |
+| Fast iteration | ✅   | ❌          | `pytest tests/unit/ -v`       |
+| Full suite     | ✅   | ✅          | `pytest tests/ -v`            |
+| With coverage  | ✅   | ✅          | `pytest tests/ --cov`         |
+| CI/CD          | ✅   | ✅          | `.github/workflows/tests.yml` |
+| Daemon tests   | ❌   | ✅          | `pytest -m daemon -v`         |
 
 ## Test Categories
 
 ### Unit Tests (Fast, Isolated)
+
 1. **test_main_dispatcher.py** - Command routing and dispatch
    - Dispatcher routes commands correctly
    - Global options parsed
@@ -266,6 +291,7 @@ uv run pytest tests/ -k "daemon" --collect-only
    - Environment variable expansion
 
 ### Integration Tests (Slower, Realistic)
+
 1. **test_daemon_mode_integration.py** - Daemon operations
    - End-to-end daemon startup
    - Tool execution through daemon
@@ -300,18 +326,21 @@ uv run pytest tests/ -k "daemon" --collect-only
 ## Next Steps for Implementation
 
 ### Phase 1: Code Implementation (Weeks 1-2)
+
 1. Replace `pass` statements with actual test code
 2. Implement main.py dispatcher module
 3. Implement daemon_detection.py logic
 4. Implement config.py management
 
 ### Phase 2: Test Execution (Weeks 2-3)
+
 1. Run test suite and fix failures
 2. Achieve 80%+ coverage
 3. Verify all acceptance criteria pass
 4. Validate performance improvements
 
 ### Phase 3: CI/CD and Polish (Week 3-4)
+
 1. Ensure GitHub Actions workflow passes
 2. Generate coverage reports
 3. Document any test limitations
@@ -320,23 +349,25 @@ uv run pytest tests/ -k "daemon" --collect-only
 ## Files Modified/Created
 
 ### Created Files (14)
+
 - ✅ docs/testing/ADR-0003-testing-strategy.md
 - ✅ docs/testing/TESTING-GUIDE.md
 - ✅ docs/testing/README.md
 - ✅ docs/testing/IMPLEMENTATION-SUMMARY.md (this file)
-- ✅ tests/__init__.py
+- ✅ tests/**init**.py
 - ✅ tests/conftest.py
-- ✅ tests/unit/__init__.py
+- ✅ tests/unit/**init**.py
 - ✅ tests/unit/test_main_dispatcher.py
 - ✅ tests/unit/test_daemon_detection.py
 - ✅ tests/unit/test_config_management.py
-- ✅ tests/integration/__init__.py
+- ✅ tests/integration/**init**.py
 - ✅ tests/integration/test_daemon_mode_integration.py
 - ✅ tests/integration/test_direct_mode_integration.py
 - ✅ tests/integration/test_fallback_behavior.py
 - ✅ .github/workflows/tests.yml
 
 ### Modified Files (1)
+
 - ✅ pyproject.toml (added pytest configuration)
 
 ## Test Discovery Verification
@@ -369,12 +400,14 @@ All tests discoverable and executable with pytest.
 ## Performance Characteristics
 
 ### Test Execution Time (Estimated)
+
 - **Unit tests**: ~10-15 seconds
 - **Integration tests**: ~30-60 seconds (depends on system)
 - **Full suite**: ~60-90 seconds
 - **With coverage**: Add 10-20 seconds
 
 ### Resource Requirements
+
 - Python 3.7+
 - ~100MB disk for test files
 - Minimal memory (tests don't spawn many processes)
@@ -383,6 +416,7 @@ All tests discoverable and executable with pytest.
 ## Maintenance Notes
 
 ### Adding New Tests
+
 1. Add test file to appropriate directory (unit/ or integration/)
 2. Use test template from TESTING-GUIDE.md
 3. Use appropriate markers (@pytest.mark.unit, etc.)
@@ -390,12 +424,14 @@ All tests discoverable and executable with pytest.
 5. Update test count in documentation
 
 ### Updating Fixtures
+
 1. Modify conftest.py
 2. Update fixture docstrings
 3. Update TESTING-GUIDE.md with new fixture info
 4. Run test suite to verify compatibility
 
 ### Changing Coverage Requirements
+
 1. Update [tool.coverage] in pyproject.toml
 2. Update coverage targets in testing-strategy.md
 3. Update acceptance criteria in this file

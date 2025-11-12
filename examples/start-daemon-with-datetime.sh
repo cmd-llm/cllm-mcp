@@ -25,7 +25,7 @@ NC='\033[0m' # No Color
 
 # Get the directory where this script is located
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
+PROJECT_ROOT="$(dirname "${SCRIPT_DIR}")"
 
 echo -e "${BLUE}=== Starting MCP Daemon with Datetime Server ===${NC}"
 echo ""
@@ -35,7 +35,7 @@ echo -e "${GREEN}Starting daemon in foreground mode...${NC}"
 echo "This will run the daemon in the foreground so you can see all output."
 echo ""
 
-cd "$PROJECT_ROOT"
+cd "${PROJECT_ROOT}"
 
 # Start the daemon with --foreground flag
 # The daemon will load configurations from mcp-config.json or environment

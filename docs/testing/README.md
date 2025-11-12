@@ -5,9 +5,11 @@ This directory contains comprehensive testing documentation and strategy for ADR
 ## Documents
 
 ### 1. ADR-0003-testing-strategy.md
+
 **Comprehensive testing strategy document**
 
 This is the main testing specification document that defines:
+
 - Testing framework and tools (pytest)
 - Test structure and organization
 - Complete test categories and coverage goals
@@ -18,15 +20,18 @@ This is the main testing specification document that defines:
 - Coverage targets and critical paths
 
 **Use this for:**
+
 - Understanding the complete testing approach
 - Test case design and specification
 - Coverage requirements
 - Acceptance criteria validation
 
 ### 2. TESTING-GUIDE.md
+
 **Practical guide for running tests**
 
 Quick reference guide for developers explaining how to:
+
 - Install test dependencies
 - Run all tests or specific subsets
 - Organize tests by category
@@ -36,6 +41,7 @@ Quick reference guide for developers explaining how to:
 - Write new tests
 
 **Use this for:**
+
 - Running tests during development
 - Understanding test organization
 - Debugging test failures
@@ -45,6 +51,7 @@ Quick reference guide for developers explaining how to:
 ## Test Files Created
 
 ### Unit Tests (`tests/unit/`)
+
 Fast, isolated tests with no external dependencies:
 
 - `test_main_dispatcher.py` - Command routing and dispatch logic
@@ -55,6 +62,7 @@ Fast, isolated tests with no external dependencies:
 - (Future) `test_mcp_daemon.py` - MCPDaemon class
 
 ### Integration Tests (`tests/integration/`)
+
 Slower tests that interact with processes, files, or network:
 
 - `test_daemon_mode_integration.py` - End-to-end daemon functionality
@@ -64,6 +72,7 @@ Slower tests that interact with processes, files, or network:
 - (Future) `test_config_loading.py` - Configuration integration
 
 ### Shared Test Infrastructure (`tests/`)
+
 - `conftest.py` - Pytest configuration, fixtures, and mocks
 - `__init__.py` - Python package marker
 - `unit/__init__.py`
@@ -72,6 +81,7 @@ Slower tests that interact with processes, files, or network:
 ## Quick Start
 
 ### Run All Tests
+
 ```bash
 cd /Users/owenzanzal/Projects/cllm-mcp
 uv sync
@@ -79,17 +89,20 @@ uv run pytest tests/ -v
 ```
 
 ### Run Unit Tests Only (Fast)
+
 ```bash
 uv run pytest tests/unit/ -v
 ```
 
 ### Run with Coverage Report
+
 ```bash
 uv run pytest tests/ --cov=cllm_mcp --cov-report=html
 open htmlcov/index.html
 ```
 
 ### Run Specific Test
+
 ```bash
 uv run pytest tests/unit/test_daemon_detection.py::TestDaemonDetection::test_daemon_detected_when_socket_exists -v
 ```
@@ -98,15 +111,16 @@ uv run pytest tests/unit/test_daemon_detection.py::TestDaemonDetection::test_dae
 
 According to ADR-0003 testing strategy:
 
-| Component | Target | Status |
-|-----------|--------|--------|
-| mcp_cli.py | 85% | Pending implementation |
-| mcp_daemon.py | 85% | Pending implementation |
-| main.py (new) | 90% | Test cases defined |
-| config.py (new) | 85% | Test cases defined |
-| Overall | 85% | In progress |
+| Component       | Target | Status                 |
+| --------------- | ------ | ---------------------- |
+| mcp_cli.py      | 85%    | Pending implementation |
+| mcp_daemon.py   | 85%    | Pending implementation |
+| main.py (new)   | 90%    | Test cases defined     |
+| config.py (new) | 85%    | Test cases defined     |
+| Overall         | 85%    | In progress            |
 
 **Critical Paths (100% coverage):**
+
 - Command dispatch logic
 - Daemon detection logic
 - Fallback behavior
@@ -117,15 +131,18 @@ According to ADR-0003 testing strategy:
 Tests are organized by:
 
 ### By Type
+
 - **Unit tests** (`-m unit`) - Fast, isolated
 - **Integration tests** (`-m integration`) - Require processes
 - **Slow tests** (Skip with `-m "not slow"`) - Long running
 
 ### By Feature
+
 - **Daemon tests** (`-m daemon`) - Daemon functionality
 - **Socket tests** (`-m socket`) - Unix socket operations
 
 ### By Component
+
 - `test_main_dispatcher.py` - Command dispatch
 - `test_daemon_detection.py` - Daemon detection
 - `test_config_management.py` - Configuration
@@ -148,27 +165,32 @@ Defined in `tests/conftest.py`:
 ## CI/CD Integration
 
 ### GitHub Actions Workflow
+
 File: `.github/workflows/tests.yml`
 
 Runs:
+
 - Unit tests on all Python versions (3.7-3.12)
 - Integration tests with timeout
 - Coverage report generation
 - Codecov upload
 
 Triggers on:
+
 - Push to main/develop
 - Pull requests to main/develop
 
 ### Local CI Check
+
 Run before committing:
+
 ```bash
 uv run pytest tests/ -v --cov=cllm_mcp --cov-fail-under=80
 ```
 
 ## ⚠️ CURRENT STATUS: TEST IMPLEMENTATION PENDING
 
-**IMPORTANT**: The test infrastructure and documentation below describe the *planned* testing approach, but **actual test implementation has not yet begun**. The following are not currently in place:
+**IMPORTANT**: The test infrastructure and documentation below describe the _planned_ testing approach, but **actual test implementation has not yet begun**. The following are not currently in place:
 
 - ❌ `tests/` directory and test files do NOT exist
 - ❌ No actual test code has been implemented
@@ -176,6 +198,7 @@ uv run pytest tests/ -v --cov=cllm_mcp --cov-fail-under=80
 - ❌ Test cases are described but not implemented
 
 ### What IS Implemented
+
 - ✅ ADR-0003 main architecture document
 - ✅ Comprehensive testing strategy document (describes planned tests)
 - ✅ pytest configuration in pyproject.toml
@@ -183,6 +206,7 @@ uv run pytest tests/ -v --cov=cllm_mcp --cov-fail-under=80
 - ✅ This testing guide documentation
 
 ### 📋 Next Steps (TO BE DONE)
+
 1. **CRITICAL**: Create `tests/` directory structure
 2. Create `tests/conftest.py` with fixtures
 3. Implement unit tests:
@@ -199,12 +223,14 @@ uv run pytest tests/ -v --cov=cllm_mcp --cov-fail-under=80
 ## Test Cases Summary
 
 ### Unit Tests
+
 - **35 test cases** in test_main_dispatcher.py
 - **25 test cases** in test_daemon_detection.py
 - **35 test cases** in test_config_management.py
 - **Total: 95+ unit test cases**
 
 ### Integration Tests
+
 - **25 test cases** in test_fallback_behavior.py
 - **30 test cases** in test_daemon_mode_integration.py
 - **Total: 55+ integration test cases**
@@ -214,6 +240,7 @@ uv run pytest tests/ -v --cov=cllm_mcp --cov-fail-under=80
 ## Key Features Tested
 
 ### Command Dispatcher
+
 - Command routing
 - Global options handling
 - Argument passing
@@ -221,6 +248,7 @@ uv run pytest tests/ -v --cov=cllm_mcp --cov-fail-under=80
 - Help text
 
 ### Daemon Detection
+
 - Socket existence checking
 - Daemon responsiveness
 - Timeout handling
@@ -228,6 +256,7 @@ uv run pytest tests/ -v --cov=cllm_mcp --cov-fail-under=80
 - Configuration
 
 ### Configuration Management
+
 - File loading
 - Validation
 - Server listing
@@ -235,6 +264,7 @@ uv run pytest tests/ -v --cov=cllm_mcp --cov-fail-under=80
 - Error handling
 
 ### Daemon Mode
+
 - Server startup
 - Tool execution
 - Performance
@@ -242,6 +272,7 @@ uv run pytest tests/ -v --cov=cllm_mcp --cov-fail-under=80
 - Stability
 
 ### Fallback Behavior
+
 - Transparent fallback
 - Error recovery
 - Performance transparency
@@ -262,22 +293,26 @@ All tests in this suite must pass before ADR-0003 is considered complete:
 ## Running Tests in Different Environments
 
 ### Local Development
+
 ```bash
 uv run pytest tests/unit/ -v --tb=short  # Fast iteration
 ```
 
 ### Before Committing
+
 ```bash
 uv run pytest tests/ -v --cov=cllm_mcp --cov-fail-under=80
 ```
 
 ### Full CI Check
+
 ```bash
 uv run pytest tests/ -v --cov=cllm_mcp --cov-report=html
 python -m pytest tests/ --cov=cllm_mcp --cov-fail-under=85
 ```
 
 ### Debugging
+
 ```bash
 uv run pytest tests/unit/test_daemon_detection.py -v -s --pdb
 ```

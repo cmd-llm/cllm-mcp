@@ -39,6 +39,7 @@ When using MCP servers with LLMs, tool definitions consume significant tokens in
 This project uses a unified command architecture (ADR-0003) with backward compatibility for legacy scripts.
 
 ### Primary Entry Point (Recommended)
+
 ```bash
 # New unified command via Python entry point
 uv run cllm-mcp list-tools "npx -y @modelcontextprotocol/server-filesystem /tmp"
@@ -52,6 +53,7 @@ uv run cllm-mcp daemon start  # Start daemon in background
 **Module**: `cllm_mcp/main.py` → Entry point: `cllm-mcp` command
 
 ### Legacy Entry Points (Backward Compatible)
+
 ```bash
 # Legacy client (works, but consider using main entry point)
 python mcp_cli.py list-tools "..."
@@ -66,6 +68,7 @@ python mcp_daemon.py status
 **Note**: Root-level `mcp_cli.py` and `mcp_daemon.py` are kept for backward compatibility but the modern approach is to use the unified `cllm-mcp` command through `cllm_mcp/main.py`.
 
 ### Module Architecture
+
 ```
 cllm_mcp/
 ├── main.py              # Unified command dispatcher (primary entry point)
@@ -75,6 +78,7 @@ cllm_mcp/
 ```
 
 **Root-level files** (for backward compatibility):
+
 - `mcp_cli.py` → Imported by main.py for direct mode implementation
 - `mcp_daemon.py` → Imported by main.py for daemon mode implementation
 
@@ -85,6 +89,7 @@ cllm_mcp/
 Python-based MCP client that communicates with MCP servers using JSON-RPC over stdio.
 
 **Features:**
+
 - Initialize connections to MCP servers
 - List available tools
 - Execute tool calls with JSON parameters
@@ -93,12 +98,14 @@ Python-based MCP client that communicates with MCP servers using JSON-RPC over s
 ### 2. Simple Bash Wrappers
 
 Direct wrappers for basic operations:
+
 - `mcp-list-tools.sh` - List all tools from a server
 - `mcp-call-tool.sh` - Call a specific tool
 
 ### 3. Advanced Configuration Wrapper
 
 Configuration-based wrapper for managing multiple MCP servers:
+
 - `mcp-wrapper.sh` - Execute commands using server definitions from config
 - `mcp-config.example.json` - Example configuration with common servers
 
@@ -114,27 +121,32 @@ Configuration-based wrapper for managing multiple MCP servers:
 ### Setup
 
 1. Install uv (if not already installed):
+
 ```bash
 curl -LsSf https://astral.sh/uv/install.sh | sh
 ```
 
 2. Clone this repository:
+
 ```bash
 git clone <repository-url>
 cd research
 ```
 
 3. Install the project using uv:
+
 ```bash
 uv sync
 ```
 
 4. Make scripts executable:
+
 ```bash
 chmod +x mcp_cli.py mcp-*.sh
 ```
 
 5. (Optional) Create configuration file:
+
 ```bash
 cp mcp-config.example.json mcp-config.json
 # Edit mcp-config.json with your server configurations
@@ -143,6 +155,7 @@ cp mcp-config.example.json mcp-config.json
 ### Running with uv
 
 You can run the CLI tool using uv:
+
 ```bash
 # Using uv run
 uv run mcp-cli list-tools "npx -y @modelcontextprotocol/server-filesystem /tmp"
@@ -157,17 +170,20 @@ mcp-cli list-tools "npx -y @modelcontextprotocol/server-filesystem /tmp"
 ### Method 1: Direct Python Client
 
 #### List Tools
+
 ```bash
 ./mcp_cli.py list-tools "npx -y @modelcontextprotocol/server-filesystem /tmp"
 ```
 
 #### Call a Tool
+
 ```bash
 ./mcp_cli.py call-tool "npx -y @modelcontextprotocol/server-filesystem /tmp" \
     read_file '{"path": "/tmp/test.txt"}'
 ```
 
 #### Interactive Mode
+
 ```bash
 ./mcp_cli.py interactive "npx -y @modelcontextprotocol/server-filesystem /tmp"
 ```
@@ -186,6 +202,7 @@ mcp-cli list-tools "npx -y @modelcontextprotocol/server-filesystem /tmp"
 ### Method 3: Configuration-Based Wrapper (Recommended)
 
 1. Configure your servers in `mcp-config.json`:
+
 ```json
 {
   "mcpServers": {
@@ -198,6 +215,7 @@ mcp-cli list-tools "npx -y @modelcontextprotocol/server-filesystem /tmp"
 ```
 
 2. Use the wrapper:
+
 ```bash
 # List tools from configured server
 ./mcp-wrapper.sh filesystem list-tools
@@ -214,6 +232,7 @@ mcp-cli list-tools "npx -y @modelcontextprotocol/server-filesystem /tmp"
 The key benefit is that LLMs can now call simple bash scripts instead of managing MCP protocol details:
 
 ### Before (High Token Usage)
+
 ```
 LLM Context:
 - Full MCP protocol knowledge
@@ -223,6 +242,7 @@ LLM Context:
 ```
 
 ### After (Minimal Token Usage)
+
 ```
 LLM Instructions:
 "To read a file, call: ./mcp-wrapper.sh filesystem call-tool read_file '{\"path\": \"<path>\"}'
@@ -249,6 +269,7 @@ Use these commands to perform file operations as needed.
 ## Common MCP Servers
 
 ### Filesystem Operations
+
 ```bash
 ./mcp-wrapper.sh filesystem call-tool read_file '{"path": "/tmp/file.txt"}'
 ./mcp-wrapper.sh filesystem call-tool write_file '{"path": "/tmp/file.txt", "content": "Hello"}'
@@ -256,6 +277,7 @@ Use these commands to perform file operations as needed.
 ```
 
 ### GitHub Operations
+
 ```bash
 ./mcp-wrapper.sh github call-tool create_issue '{
   "owner": "username",
@@ -266,6 +288,7 @@ Use these commands to perform file operations as needed.
 ```
 
 ### Web Search (Brave)
+
 ```bash
 ./mcp-wrapper.sh brave-search call-tool search '{
   "query": "MCP protocol documentation"
@@ -273,6 +296,7 @@ Use these commands to perform file operations as needed.
 ```
 
 ### Database Operations (SQLite)
+
 ```bash
 ./mcp-wrapper.sh sqlite call-tool query '{
   "sql": "SELECT * FROM users LIMIT 10"
@@ -299,6 +323,7 @@ The `mcp-config.json` file defines available MCP servers:
 ```
 
 ### Fields:
+
 - **command**: Executable to run (usually `npx` for Node.js MCP servers)
 - **args**: Array of command-line arguments
 - **env**: (Optional) Environment variables to set
@@ -328,10 +353,12 @@ ISSUE_NUM="$3"
 ### Error Handling
 
 The CLI returns appropriate exit codes:
+
 - `0` - Success
 - `1` - Error (with error message to stderr)
 
 Example error handling in bash:
+
 ```bash
 if ! output=$(./mcp-wrapper.sh filesystem call-tool read_file '{"path": "/tmp/file.txt"}' 2>&1); then
     echo "Error reading file: $output" >&2
@@ -389,10 +416,10 @@ The daemon keeps MCP servers running in the background and communicates via Unix
 
 ### Performance Comparison
 
-| Method | First Call | Subsequent Calls | Best For |
-|--------|------------|------------------|----------|
-| **Direct** | ~200ms | ~200ms | Single calls |
-| **Daemon** | ~200ms | ~5-20ms | Multiple calls |
+| Method     | First Call | Subsequent Calls | Best For       |
+| ---------- | ---------- | ---------------- | -------------- |
+| **Direct** | ~200ms     | ~200ms           | Single calls   |
+| **Daemon** | ~200ms     | ~5-20ms          | Multiple calls |
 
 ### Usage
 
@@ -409,6 +436,7 @@ The daemon keeps MCP servers running in the background and communicates via Unix
 #### 2. Use Daemon Mode
 
 **With Direct CLI:**
+
 ```bash
 # Add --use-daemon flag to any command
 ./mcp_cli.py call-tool --use-daemon \
@@ -417,6 +445,7 @@ The daemon keeps MCP servers running in the background and communicates via Unix
 ```
 
 **With Config Wrapper:**
+
 ```bash
 # Enable daemon mode via environment variable
 export MCP_USE_DAEMON=1
@@ -477,12 +506,14 @@ done
 ### When to Use Daemon Mode
 
 ✅ **Use Daemon Mode When:**
+
 - Making multiple tool calls in a script
 - Running repeated operations (batch processing)
 - Performance is critical
 - You can manage daemon lifecycle (start/stop)
 
 ❌ **Skip Daemon Mode When:**
+
 - Making a single tool call
 - Running one-off commands
 - Can't reliably stop the daemon afterwards
@@ -491,6 +522,7 @@ done
 ### Troubleshooting
 
 **Daemon won't start:**
+
 ```bash
 # Check if daemon is already running
 ./mcp-daemon status
@@ -501,6 +533,7 @@ rm /tmp/mcp-daemon.sock
 ```
 
 **"Daemon not running" error:**
+
 ```bash
 # Make sure daemon is started first
 ./mcp-daemon start
@@ -510,6 +543,7 @@ rm /tmp/mcp-daemon.sock
 ```
 
 **Custom socket path:**
+
 ```bash
 # Use custom socket location
 ./mcp-daemon --socket /path/to/custom.sock start
@@ -547,6 +581,7 @@ rm /tmp/mcp-daemon.sock
 ## Examples
 
 See the `examples/` directory for complete working examples:
+
 - File operations workflow
 - GitHub automation
 - Database queries

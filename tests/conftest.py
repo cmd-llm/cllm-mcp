@@ -3,18 +3,16 @@
 import json
 import os
 import socket
-import subprocess
 import tempfile
-from pathlib import Path
 from typing import Any, Dict, Optional
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import MagicMock, patch
 
 import pytest
-
 
 # ============================================================================
 # Test Markers
 # ============================================================================
+
 
 def pytest_configure(config):
     """Register custom pytest markers."""
@@ -22,27 +20,27 @@ def pytest_configure(config):
         "markers", "unit: mark test as a unit test (fast, isolated)"
     )
     config.addinivalue_line(
-        "markers", "integration: mark test as an integration test (slower, requires setup)"
+        "markers",
+        "integration: mark test as an integration test (slower, requires setup)",
     )
     config.addinivalue_line(
         "markers", "daemon: mark test as requiring daemon functionality"
     )
-    config.addinivalue_line(
-        "markers", "socket: mark test as requiring Unix socket"
-    )
-    config.addinivalue_line(
-        "markers", "slow: mark test as slow-running"
-    )
+    config.addinivalue_line("markers", "socket: mark test as requiring Unix socket")
+    config.addinivalue_line("markers", "slow: mark test as slow-running")
 
 
 # ============================================================================
 # Mock MCP Server
 # ============================================================================
 
+
 class MockMCPServer:
     """Mock MCP server for testing."""
 
-    def __init__(self, server_name: str = "test-server", tools: Optional[Dict[str, Any]] = None):
+    def __init__(
+        self, server_name: str = "test-server", tools: Optional[Dict[str, Any]] = None
+    ):
         """Initialize mock MCP server.
 
         Args:
@@ -57,8 +55,8 @@ class MockMCPServer:
                     "type": "object",
                     "properties": {
                         "arg": {"type": "string", "description": "A test argument"}
-                    }
-                }
+                    },
+                },
             }
         }
         self.call_history = []
@@ -69,23 +67,21 @@ class MockMCPServer:
 
     def call_tool(self, tool_name: str, arguments: Dict[str, Any]) -> Dict[str, Any]:
         """Mock tool call."""
-        self.call_history.append({
-            "tool": tool_name,
-            "arguments": arguments
-        })
+        self.call_history.append({"tool": tool_name, "arguments": arguments})
 
         if tool_name not in self.tools:
             return {"error": f"Tool {tool_name} not found"}
 
         return {
             "result": f"Mock result for {tool_name} with args {arguments}",
-            "tool": tool_name
+            "tool": tool_name,
         }
 
 
 # ============================================================================
 # Fixtures - Temporary Files and Directories
 # ============================================================================
+
 
 @pytest.fixture
 def temp_socket_dir():
@@ -113,21 +109,12 @@ def config_file(temp_config_dir):
     config_path = os.path.join(temp_config_dir, "config.json")
     config_data = {
         "mcpServers": {
-            "time": {
-                "command": "uvx",
-                "args": ["mcp-server-time"]
-            },
-            "filesystem": {
-                "command": "uvx",
-                "args": ["mcp-server-filesystem", "/tmp"]
-            },
-            "python": {
-                "command": "python",
-                "args": ["-m", "mcp_server_python"]
-            }
+            "time": {"command": "uvx", "args": ["mcp-server-time"]},
+            "filesystem": {"command": "uvx", "args": ["mcp-server-filesystem", "/tmp"]},
+            "python": {"command": "python", "args": ["-m", "mcp_server_python"]},
         }
     }
-    with open(config_path, 'w') as f:
+    with open(config_path, "w") as f:
         json.dump(config_data, f)
     return config_path
 
@@ -135,6 +122,7 @@ def config_file(temp_config_dir):
 # ============================================================================
 # Fixtures - Mock Objects
 # ============================================================================
+
 
 @pytest.fixture
 def mock_mcp_server():
@@ -145,18 +133,16 @@ def mock_mcp_server():
 @pytest.fixture
 def mock_socket():
     """Create a mock socket."""
-    with patch('socket.socket') as mock:
+    with patch("socket.socket") as mock:
         yield mock
 
 
 @pytest.fixture
 def mock_subprocess():
     """Create a mock subprocess."""
-    with patch('subprocess.Popen') as mock:
+    with patch("subprocess.Popen") as mock:
         mock.return_value = MagicMock(
-            pid=12345,
-            communicate=MagicMock(return_value=(b'', b'')),
-            returncode=0
+            pid=12345, communicate=MagicMock(return_value=(b"", b"")), returncode=0
         )
         yield mock
 
@@ -175,13 +161,14 @@ def mock_daemon_process():
 # Fixtures - Environment and State
 # ============================================================================
 
+
 @pytest.fixture
 def clean_env():
     """Provide a clean environment without existing socket paths."""
     original_env = os.environ.copy()
 
     # Remove any MCP-related environment variables
-    env_keys_to_remove = [k for k in os.environ if 'MCP' in k or 'SOCKET' in k]
+    env_keys_to_remove = [k for k in os.environ if "MCP" in k or "SOCKET" in k]
     for key in env_keys_to_remove:
         del os.environ[key]
 
@@ -204,6 +191,7 @@ def isolated_filesystem(tmp_path):
 # ============================================================================
 # Fixtures - Daemon Setup/Teardown
 # ============================================================================
+
 
 @pytest.fixture
 def daemon_socket(socket_path):
@@ -259,6 +247,7 @@ def running_daemon(daemon_socket):
 # Fixtures - Argument Parsers
 # ============================================================================
 
+
 @pytest.fixture
 def mock_args():
     """Create a mock argparse Namespace for testing."""
@@ -268,10 +257,10 @@ def mock_args():
 @pytest.fixture
 def cli_args(mock_args):
     """Create mock CLI arguments."""
-    mock_args.command = 'list-tools'
-    mock_args.server = 'test-server'
+    mock_args.command = "list-tools"
+    mock_args.server = "test-server"
     mock_args.config = None
-    mock_args.socket = '/tmp/mcp-daemon.sock'
+    mock_args.socket = "/tmp/mcp-daemon.sock"
     mock_args.no_daemon = False
     mock_args.verbose = False
     mock_args.daemon_timeout = 30
@@ -281,10 +270,10 @@ def cli_args(mock_args):
 @pytest.fixture
 def daemon_args(mock_args):
     """Create mock daemon arguments."""
-    mock_args.command = 'daemon'
-    mock_args.subcommand = 'start'
+    mock_args.command = "daemon"
+    mock_args.subcommand = "start"
     mock_args.config = None
-    mock_args.socket = '/tmp/mcp-daemon.sock'
+    mock_args.socket = "/tmp/mcp-daemon.sock"
     mock_args.verbose = False
     return mock_args
 
@@ -292,8 +281,8 @@ def daemon_args(mock_args):
 @pytest.fixture
 def config_args(mock_args):
     """Create mock config arguments."""
-    mock_args.command = 'config'
-    mock_args.subcommand = 'list'
+    mock_args.command = "config"
+    mock_args.subcommand = "list"
     mock_args.config = None
     mock_args.verbose = False
     return mock_args
@@ -302,6 +291,7 @@ def config_args(mock_args):
 # ============================================================================
 # Fixtures - Test Data
 # ============================================================================
+
 
 @pytest.fixture
 def sample_tools_response():
@@ -313,21 +303,17 @@ def sample_tools_response():
                 "description": "List files in a directory",
                 "inputSchema": {
                     "type": "object",
-                    "properties": {
-                        "path": {"type": "string"}
-                    }
-                }
+                    "properties": {"path": {"type": "string"}},
+                },
             },
             {
                 "name": "read_file",
                 "description": "Read a file",
                 "inputSchema": {
                     "type": "object",
-                    "properties": {
-                        "path": {"type": "string"}
-                    }
-                }
-            }
+                    "properties": {"path": {"type": "string"}},
+                },
+            },
         ]
     }
 
@@ -337,18 +323,9 @@ def sample_config():
     """Sample MCP configuration."""
     return {
         "mcpServers": {
-            "filesystem": {
-                "command": "uvx",
-                "args": ["mcp-server-filesystem", "/tmp"]
-            },
-            "time": {
-                "command": "uvx",
-                "args": ["mcp-server-time"]
-            },
-            "weather": {
-                "command": "python",
-                "args": ["-m", "mcp_server_weather"]
-            }
+            "filesystem": {"command": "uvx", "args": ["mcp-server-filesystem", "/tmp"]},
+            "time": {"command": "uvx", "args": ["mcp-server-time"]},
+            "weather": {"command": "python", "args": ["-m", "mcp_server_weather"]},
         }
     }
 
@@ -362,13 +339,14 @@ def sample_daemon_status():
         "socket": "/tmp/mcp-daemon.sock",
         "uptime_seconds": 3600,
         "active_servers": ["filesystem", "time"],
-        "memory_usage_mb": 45.5
+        "memory_usage_mb": 45.5,
     }
 
 
 # ============================================================================
 # Test Utility Functions
 # ============================================================================
+
 
 def assert_socket_available(socket_path: str) -> bool:
     """Check if a socket path is available for use."""
@@ -383,6 +361,7 @@ def assert_socket_available(socket_path: str) -> bool:
 def wait_for_socket(socket_path: str, timeout: int = 5) -> bool:
     """Wait for a socket to become available."""
     import time
+
     start = time.time()
     while time.time() - start < timeout:
         if os.path.exists(socket_path):
@@ -400,6 +379,7 @@ def wait_for_socket(socket_path: str, timeout: int = 5) -> bool:
 # ============================================================================
 # Test Collection Hooks
 # ============================================================================
+
 
 def pytest_collection_modifyitems(config, items):
     """Add markers to tests based on file location."""

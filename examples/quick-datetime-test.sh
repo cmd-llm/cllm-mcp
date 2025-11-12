@@ -17,12 +17,12 @@ NC='\033[0m' # No Color
 
 # Get the directory where this script is located
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
+PROJECT_ROOT="$(dirname "${SCRIPT_DIR}")"
 
 echo -e "${BLUE}=== Quick Datetime MCP Server Test ===${NC}"
 echo ""
 
-cd "$PROJECT_ROOT"
+cd "${PROJECT_ROOT}"
 
 # The MCP server command to use
 # The time MCP server from modelcontextprotocol
@@ -30,18 +30,18 @@ MCP_SERVER="uvx mcp-server-time"
 
 # Step 1: List available tools
 echo -e "${GREEN}Listing available tools from datetime server...${NC}"
-uv run cllm-mcp list-tools "$MCP_SERVER" --json | jq '.[].name'
+uv run cllm-mcp list-tools "${MCP_SERVER}" --json | jq '.[].name'
 echo ""
 
 # Step 2: Get current time
 echo -e "${GREEN}Getting current time...${NC}"
-RESULT=$(uv run cllm-mcp call-tool "$MCP_SERVER" "get_current_time" '{}' --json 2>/dev/null || echo "")
+RESULT=$(uv run cllm-mcp call-tool "${MCP_SERVER}" "get_current_time" '{}' --json 2>/dev/null || echo "")
 
-if [ ! -z "$RESULT" ]; then
-    echo "$RESULT" | jq .
+if [[ -n ${RESULT} ]]; then
+	echo "${RESULT}" | jq .
 else
-    echo "Tool execution result (raw format):"
-    uv run cllm-mcp call-tool "$MCP_SERVER" "get_current_time" '{}'
+	echo "Tool execution result (raw format):"
+	uv run cllm-mcp call-tool "${MCP_SERVER}" "get_current_time" '{}'
 fi
 echo ""
 
@@ -52,7 +52,7 @@ echo "  # Start the daemon in the foreground (in one terminal):"
 echo "  uv run cllm-mcp daemon start --foreground"
 echo ""
 echo "  # In another terminal, use the running daemon for faster operations:"
-echo "  uv run cllm-mcp list-tools \"uvx mcp-server-time\""
+echo '  uv run cllm-mcp list-tools "uvx mcp-server-time"'
 echo ""
 echo "  # Check daemon status:"
 echo "  uv run cllm-mcp daemon status"

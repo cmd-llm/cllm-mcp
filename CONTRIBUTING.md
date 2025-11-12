@@ -30,16 +30,19 @@ uv sync
 ### Working with Dependencies
 
 **Adding a new dependency:**
+
 ```bash
 uv add package-name
 ```
 
 This will:
+
 - Update `pyproject.toml` with the dependency
 - Update `uv.lock` with the resolved dependency tree
 - Ensure all environments use the same versions
 
 **Updating dependencies:**
+
 ```bash
 uv sync
 ```
@@ -98,23 +101,28 @@ Before making significant architectural changes, consider creating a new ADR to 
 ## Submitting a Pull Request
 
 1. **Ensure your branch is up to date:**
+
    ```bash
    git fetch origin
    git rebase origin/main
    ```
 
 2. **Test your changes:**
+
    ```bash
    uv run mcp-cli list-tools "npx -y @modelcontextprotocol/server-filesystem /tmp"
    ```
 
 3. **Verify `uv.lock` is committed:**
+
    ```bash
    git status
    ```
+
    If you modified dependencies, ensure `uv.lock` is staged and committed.
 
 4. **Push your branch and open a PR:**
+
    ```bash
    git push origin feature/your-feature-name
    ```
@@ -139,6 +147,7 @@ If you find a bug or have a feature request:
 ## Questions?
 
 If you have questions about contributing, feel free to:
+
 - Open an issue with your question
 - Check existing discussions
 - Review the [README.md](README.md) and [QUICKSTART.md](QUICKSTART.md)

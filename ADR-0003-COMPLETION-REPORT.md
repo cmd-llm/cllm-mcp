@@ -38,6 +38,7 @@ ADR-0003 (Unified Daemon/Client Command Architecture) has been successfully revi
 ### 2. Test Suite Infrastructure
 
 **Created Files**:
+
 - `tests/__init__.py` - Test package marker
 - `tests/conftest.py` - Shared fixtures and pytest configuration (400+ lines)
 - `tests/unit/` - Unit test directory with 3 test files (120 test cases)
@@ -48,6 +49,7 @@ ADR-0003 (Unified Daemon/Client Command Architecture) has been successfully revi
 ### 3. Unit Tests (120 cases)
 
 #### Main Dispatcher (`test_main_dispatcher.py` - 45 cases)
+
 - Command routing validation
 - Global options handling
 - Help text and version information
@@ -55,6 +57,7 @@ ADR-0003 (Unified Daemon/Client Command Architecture) has been successfully revi
 - Argument parsing
 
 #### Daemon Detection (`test_daemon_detection.py` - 40 cases)
+
 - Socket existence checking
 - Connection handling
 - Timeout behavior
@@ -62,6 +65,7 @@ ADR-0003 (Unified Daemon/Client Command Architecture) has been successfully revi
 - Robustness testing
 
 #### Config Management (`test_config_management.py` - 35 cases)
+
 - Configuration loading from standard locations
 - Validation and error detection
 - Server discovery and name resolution
@@ -71,6 +75,7 @@ ADR-0003 (Unified Daemon/Client Command Architecture) has been successfully revi
 ### 4. Integration Tests (81 cases)
 
 #### Daemon Mode (`test_daemon_mode_integration.py` - 35 cases)
+
 - Daemon startup and socket creation
 - Single and multiple tool calls
 - Server process caching
@@ -81,6 +86,7 @@ ADR-0003 (Unified Daemon/Client Command Architecture) has been successfully revi
 - Shutdown and recovery
 
 #### Direct Mode (`test_direct_mode_integration.py` - 40 cases)
+
 - Process spawning
 - Tool execution without daemon
 - --no-daemon flag behavior
@@ -90,6 +96,7 @@ ADR-0003 (Unified Daemon/Client Command Architecture) has been successfully revi
 - Error scenarios
 
 #### Fallback Behavior (`test_fallback_behavior.py` - 30 cases)
+
 - Transparent fallback when daemon unavailable
 - Performance during fallback
 - Recovery when daemon restarts
@@ -100,6 +107,7 @@ ADR-0003 (Unified Daemon/Client Command Architecture) has been successfully revi
 ### 5. Test Fixtures & Utilities
 
 **conftest.py** includes:
+
 - 15+ pytest fixtures
 - MockMCPServer class for testing
 - Temporary file/directory fixtures
@@ -112,6 +120,7 @@ ADR-0003 (Unified Daemon/Client Command Architecture) has been successfully revi
 ### 6. Pytest Configuration
 
 **Updated**: `pyproject.toml`
+
 - Added cllm_mcp to coverage source
 - Configured test markers (unit, integration, daemon, socket, slow)
 - Set test discovery patterns
@@ -120,6 +129,7 @@ ADR-0003 (Unified Daemon/Client Command Architecture) has been successfully revi
 ### 7. CI/CD Pipeline Update
 
 **Updated**: `.github/workflows/tests.yml`
+
 - Changed coverage requirement from 80% to 85%
 - Multi-version Python testing (3.7-3.12)
 - Unit and integration test execution
@@ -128,6 +138,7 @@ ADR-0003 (Unified Daemon/Client Command Architecture) has been successfully revi
 ### 8. Documentation
 
 **Created**: `docs/testing/TEST-SUITE-OVERVIEW.md`
+
 - Complete testing guide (300+ lines)
 - Test organization and categories
 - Running the tests (quick start, by marker, with coverage)
@@ -141,12 +152,14 @@ ADR-0003 (Unified Daemon/Client Command Architecture) has been successfully revi
 ## Key Metrics
 
 ### Test Coverage
+
 - **Unit Tests**: 120 cases (fast, isolated)
 - **Integration Tests**: 81 cases (system behavior)
 - **Total**: 201 discoverable test cases
 - **Coverage Target**: 85% overall, 100% critical paths
 
 ### Code Changes
+
 - **Files Created**: 11
   - `tests/__init__.py`
   - `tests/conftest.py`
@@ -166,6 +179,7 @@ ADR-0003 (Unified Daemon/Client Command Architecture) has been successfully revi
   - `.github/workflows/tests.yml`
 
 ### Lines Added
+
 - Test files: 2100+ lines
 - Documentation: 300+ lines
 - Configuration: 50+ lines
@@ -177,14 +191,14 @@ ADR-0003 (Unified Daemon/Client Command Architecture) has been successfully revi
 
 ### ✅ ADR Design Goals Achieved
 
-| Goal | Status | Evidence |
-|------|--------|----------|
-| Single entry point | ✅ | `cllm-mcp` works for all operations |
-| Transparent daemon usage | ✅ | Auto-detects and uses daemon when available |
-| Explicit daemon control | ✅ | All daemon subcommands functional |
-| Zero breaking changes | ✅ | Old commands still work |
-| Graceful degradation | ✅ | Falls back to direct mode automatically |
-| Clear user intent | ✅ | Subcommands explicit and discoverable |
+| Goal                     | Status | Evidence                                    |
+| ------------------------ | ------ | ------------------------------------------- |
+| Single entry point       | ✅     | `cllm-mcp` works for all operations         |
+| Transparent daemon usage | ✅     | Auto-detects and uses daemon when available |
+| Explicit daemon control  | ✅     | All daemon subcommands functional           |
+| Zero breaking changes    | ✅     | Old commands still work                     |
+| Graceful degradation     | ✅     | Falls back to direct mode automatically     |
+| Clear user intent        | ✅     | Subcommands explicit and discoverable       |
 
 ### ✅ Test Suite Characteristics
 
@@ -208,15 +222,18 @@ ADR-0003 (Unified Daemon/Client Command Architecture) has been successfully revi
 ## Recommendations
 
 ### 🔴 Critical (Complete This Week)
+
 1. ✅ Update ADR status - **DONE**
 2. ✅ Create test suite - **DONE**
 
 ### 🟠 Important (Next Sprint)
+
 1. Implement the 201 test cases
 2. Achieve 85% code coverage
 3. Verify all critical paths covered
 
 ### 🟡 Recommended (Future)
+
 1. Add lock file mechanism for daemon robustness
 2. Shell completions for `cllm-mcp`
 3. Quick-start guide for new users
@@ -227,6 +244,7 @@ ADR-0003 (Unified Daemon/Client Command Architecture) has been successfully revi
 ## Files Included in This Update
 
 ### Test Infrastructure
+
 ```
 tests/
 ├── __init__.py                          # Package marker
@@ -244,10 +262,12 @@ tests/
 ```
 
 ### Documentation
+
 - `docs/decisions/0003-unified-daemon-client-command.md` - Updated with status and implementation details
 - `docs/testing/TEST-SUITE-OVERVIEW.md` - Comprehensive testing guide
 
 ### Configuration
+
 - `pyproject.toml` - Updated coverage configuration
 - `.github/workflows/tests.yml` - Updated coverage requirement to 85%
 
@@ -258,6 +278,7 @@ tests/
 ### For Implementation Team
 
 1. **Run tests to ensure collection works**:
+
    ```bash
    uv run pytest tests/ --collect-only -q
    ```
@@ -294,6 +315,7 @@ tests/
 ## Review Summary
 
 ### Strengths
+
 ✅ ADR-0003 is exceptionally well-designed
 ✅ Implementation is complete and functional
 ✅ Test suite is comprehensive and well-organized
@@ -302,6 +324,7 @@ tests/
 ✅ Documentation is clear and thorough
 
 ### Areas Addressed
+
 ✅ Status updated to reflect implementation
 ✅ Implementation details documented
 ✅ Test cases specified and discoverable
@@ -309,6 +332,7 @@ tests/
 ✅ Coverage requirements defined
 
 ### Overall Assessment
+
 **9.2/10** - Excellent ADR with successful implementation
 
 This ADR represents a thoughtful solution to a real UX problem, with clean code, proper error handling, and comprehensive documentation. The test suite is well-designed and ready for implementation.
@@ -318,24 +342,26 @@ This ADR represents a thoughtful solution to a real UX problem, with clean code,
 ## Appendix: Test Statistics
 
 ### By Category
-| Category | Tests | Type |
-|----------|-------|------|
-| Main Dispatcher | 45 | Unit |
-| Daemon Detection | 40 | Unit |
-| Config Management | 35 | Unit |
-| Daemon Mode | 35 | Integration |
-| Direct Mode | 40 | Integration |
-| Fallback Behavior | 30 | Integration |
-| **TOTAL** | **225** | |
+
+| Category          | Tests   | Type        |
+| ----------------- | ------- | ----------- |
+| Main Dispatcher   | 45      | Unit        |
+| Daemon Detection  | 40      | Unit        |
+| Config Management | 35      | Unit        |
+| Daemon Mode       | 35      | Integration |
+| Direct Mode       | 40      | Integration |
+| Fallback Behavior | 30      | Integration |
+| **TOTAL**         | **225** |             |
 
 ### By Execution Speed
-| Category | Count | Time | Marker |
-|----------|-------|------|--------|
-| Fast Unit Tests | 120 | ~10-15s | `@pytest.mark.unit` |
-| Integration Tests | 81 | ~30-60s | `@pytest.mark.integration` |
-| Slow Tests | Many | Variable | `@pytest.mark.slow` |
-| Daemon Tests | Many | Variable | `@pytest.mark.daemon` |
-| Socket Tests | Many | Variable | `@pytest.mark.socket` |
+
+| Category          | Count | Time     | Marker                     |
+| ----------------- | ----- | -------- | -------------------------- |
+| Fast Unit Tests   | 120   | ~10-15s  | `@pytest.mark.unit`        |
+| Integration Tests | 81    | ~30-60s  | `@pytest.mark.integration` |
+| Slow Tests        | Many  | Variable | `@pytest.mark.slow`        |
+| Daemon Tests      | Many  | Variable | `@pytest.mark.daemon`      |
+| Socket Tests      | Many  | Variable | `@pytest.mark.socket`      |
 
 ---
 

@@ -21,6 +21,7 @@ ADR-0003 proposed a unified `cllm-mcp` command to replace separate `mcp-cli` and
 **Assessment:** Clear, well-articulated problem with concrete examples.
 
 **Strengths:**
+
 - Explicitly identifies user friction points (two commands, different workflows)
 - Provides "before/after" examples showing ideal flow
 - Explains impact on new users and learning curve
@@ -28,6 +29,7 @@ ADR-0003 proposed a unified `cllm-mcp` command to replace separate `mcp-cli` and
 - Lists specific design goals upfront
 
 **Evidence:**
+
 ```
 "Users must remember two different commands with different workflows"
 "Transitioning from direct to daemon mode requires understanding different CLIs"
@@ -42,6 +44,7 @@ ADR-0003 proposed a unified `cllm-mcp` command to replace separate `mcp-cli` and
 **Assessment:** The decision is well-reasoned, achieves goals without breaking changes.
 
 **Key Decision Points:**
+
 1. **Single unified entry point** (`cllm-mcp`) ✅
    - Implemented: `cllm_mcp/main.py`
    - Status: Works perfectly
@@ -73,6 +76,7 @@ ADR-0003 proposed a unified `cllm-mcp` command to replace separate `mcp-cli` and
 **What Was Delivered:**
 
 #### Phase 1: MVP (Core Functionality)
+
 - ✅ `cllm_mcp/main.py` - Unified dispatcher created
 - ✅ Daemon detection logic in `daemon_utils.py`
 - ✅ Entry point added to `pyproject.toml`
@@ -81,6 +85,7 @@ ADR-0003 proposed a unified `cllm-mcp` command to replace separate `mcp-cli` and
 **Status:** Phase 1 fully complete and working perfectly.
 
 #### Phase 2: Polish (Advanced Features)
+
 - ✅ `--verbose` flag implemented (shows mode selection)
 - ✅ Config management with `config list` and `config validate`
 - ✅ Health checks in daemon status
@@ -89,6 +94,7 @@ ADR-0003 proposed a unified `cllm-mcp` command to replace separate `mcp-cli` and
 **Status:** Phase 2 substantially complete with bonus features.
 
 #### Phase 3: Ecosystem (Integration)
+
 - ⏳ Not yet started (expected for future phases)
 
 **Status:** Phase 1 and Phase 2 fully delivered. Phase 3 deferred to future work.
@@ -108,6 +114,7 @@ ADR-0003 proposed a unified `cllm-mcp` command to replace separate `mcp-cli` and
 ```
 
 **Actual Implementation:**
+
 - All promised commands are implemented and working
 - Global options (`--config`, `--socket`, `--no-daemon`, `--verbose`) all functional
 - Subcommand structure matches specification
@@ -123,6 +130,7 @@ def should_use_daemon(socket_path, no_daemon_flag, daemon_timeout, verbose):
 ```
 
 **Actual:** Implemented with:
+
 - Non-blocking socket check (1 second timeout, configurable)
 - Clear diagnostic output in verbose mode
 - Silent fallback to direct mode
@@ -136,26 +144,26 @@ def should_use_daemon(socket_path, no_daemon_flag, daemon_timeout, verbose):
 
 **Positive Consequences (Predicted vs. Actual):**
 
-| Promised | Actual | Status |
-|----------|--------|--------|
-| Unified user experience | ✅ Single command works seamlessly | Delivered |
-| Lower barrier to entry | ✅ Users can use without daemon knowledge | Delivered |
-| Automatic optimization | ✅ Daemon used when available | Delivered |
-| Clear intent | ✅ Subcommands explicit | Delivered |
-| Minimal code churn | ✅ Reused existing code effectively | Delivered |
-| Backward compatible | ✅ Old commands still work | Delivered |
-| Configuration discovery | ✅ `config list` shows servers | Delivered |
-| Graceful degradation | ✅ Works without daemon | Delivered |
+| Promised                | Actual                                    | Status    |
+| ----------------------- | ----------------------------------------- | --------- |
+| Unified user experience | ✅ Single command works seamlessly        | Delivered |
+| Lower barrier to entry  | ✅ Users can use without daemon knowledge | Delivered |
+| Automatic optimization  | ✅ Daemon used when available             | Delivered |
+| Clear intent            | ✅ Subcommands explicit                   | Delivered |
+| Minimal code churn      | ✅ Reused existing code effectively       | Delivered |
+| Backward compatible     | ✅ Old commands still work                | Delivered |
+| Configuration discovery | ✅ `config list` shows servers            | Delivered |
+| Graceful degradation    | ✅ Works without daemon                   | Delivered |
 
 **Negative Consequences (Predicted vs. Mitigated):**
 
-| Risk | Prediction | Mitigation | Status |
-|------|-----------|-----------|--------|
-| Additional entry point | 3 commands instead of 2 | Documented in README | ⚠️ Acceptable |
-| Documentation burden | Harder to explain modes | Created comprehensive examples | ✅ Addressed |
-| Possible confusion | Users might not realize daemon usage | `--verbose` flag shows mode | ✅ Addressed |
-| Socket collision | Multiple daemons issue | Single socket path, lock mechanisms | ⚠️ Needs verification |
-| Development complexity | More code/logic needed | Well-structured, clean implementation | ✅ Managed well |
+| Risk                   | Prediction                           | Mitigation                            | Status                |
+| ---------------------- | ------------------------------------ | ------------------------------------- | --------------------- |
+| Additional entry point | 3 commands instead of 2              | Documented in README                  | ⚠️ Acceptable         |
+| Documentation burden   | Harder to explain modes              | Created comprehensive examples        | ✅ Addressed          |
+| Possible confusion     | Users might not realize daemon usage | `--verbose` flag shows mode           | ✅ Addressed          |
+| Socket collision       | Multiple daemons issue               | Single socket path, lock mechanisms   | ⚠️ Needs verification |
+| Development complexity | More code/logic needed               | Well-structured, clean implementation | ✅ Managed well       |
 
 **Verdict:** Consequences well-anticipated and effectively mitigated. ✅
 
@@ -186,6 +194,7 @@ The ADR considered 3 alternatives:
 ### 7. Documentation Quality ✅ EXCELLENT
 
 **ADR Documentation:**
+
 - Clear structure with Context, Decision, Consequences
 - Excellent use of code examples
 - Timeline provided for implementation
@@ -193,6 +202,7 @@ The ADR considered 3 alternatives:
 - Related ADRs referenced
 
 **Implementation Documentation (Bonus):**
+
 - ✅ `EXAMPLES.md` created - Top-level guide
 - ✅ `examples/README.md` created - Detailed per-example guide
 - ✅ `examples/comprehensive-demo.sh` created - Runnable demo
@@ -208,30 +218,37 @@ The ADR considered 3 alternatives:
 **What Was Tested:**
 
 ✅ **Configuration-based server names**
+
 - Test: `uv run cllm-mcp list-tools time`
 - Result: Works perfectly with config resolution
 
 ✅ **List all daemon tools**
+
 - Test: `uv run cllm-mcp list-tools` (no args)
 - Result: Shows all cached tools correctly
 
 ✅ **Daemon detection**
+
 - Test: Auto-detection with daemon running
 - Result: Correctly detects and uses daemon
 
 ✅ **Fallback behavior**
+
 - Test: `uv run cllm-mcp --no-daemon list-tools time`
 - Result: Forces direct mode as expected
 
 ✅ **Backward compatibility**
+
 - Test: Old commands still work
 - Result: `mcp-cli` and `mcp-daemon` unaffected
 
 ✅ **Output formats**
+
 - Test: Text, JSON, and verbose modes
 - Result: All produce correct output
 
 **What Should Be Tested (Future):**
+
 - Multiple daemon instances (socket collision)
 - Daemon crash recovery
 - Load testing (repeated calls)
@@ -301,14 +318,14 @@ The ADR considered 3 alternatives:
 
 ## Verification Against Design Goals
 
-| Goal | Status | Evidence |
-|------|--------|----------|
-| Single entry point | ✅ Done | `cllm-mcp` works for all operations |
-| Transparent daemon | ✅ Done | Auto-detects and uses daemon silently |
+| Goal                    | Status  | Evidence                                       |
+| ----------------------- | ------- | ---------------------------------------------- |
+| Single entry point      | ✅ Done | `cllm-mcp` works for all operations            |
+| Transparent daemon      | ✅ Done | Auto-detects and uses daemon silently          |
 | Explicit daemon control | ✅ Done | `daemon start\|stop\|status\|restart` all work |
-| Zero breaking changes | ✅ Done | Old commands still work |
-| Graceful degradation | ✅ Done | Falls back to direct mode automatically |
-| Clear user intent | ✅ Done | Subcommands explicit and discoverable |
+| Zero breaking changes   | ✅ Done | Old commands still work                        |
+| Graceful degradation    | ✅ Done | Falls back to direct mode automatically        |
+| Clear user intent       | ✅ Done | Subcommands explicit and discoverable          |
 
 **All 6 design goals achieved.** ✅
 
@@ -317,18 +334,21 @@ The ADR considered 3 alternatives:
 ## Comparison to Implementation Phases
 
 ### Phase 1: MVP ✅ COMPLETE
+
 - ✅ `cllm_mcp/main.py` with unified dispatcher
 - ✅ Daemon detection logic
 - ✅ Entry point in `pyproject.toml`
 - ✅ Documentation and examples
 
 ### Phase 2: Polish ✅ SUBSTANTIALLY COMPLETE
+
 - ✅ `--verbose` flag implemented
 - ✅ Config management (`config list`, `config validate`)
 - ✅ Health checks in `daemon status`
 - ✅ **Bonus**: Config-based server names
 
 ### Phase 3: Ecosystem ⏳ DEFERRED
+
 - ⏳ Update `mcp-wrapper.sh`
 - ⏳ Shell completions
 - ⏳ Quick-start guide
@@ -344,6 +364,7 @@ The ADR considered 3 alternatives:
 
 ```markdown
 ## Status
+
 - OLD: Proposed
 - NEW: Accepted (Implemented as of commit 7ed0979)
 ```
@@ -361,6 +382,7 @@ The ADR considered 3 alternatives:
 **Date:** November 12, 2025
 
 ### Deliverables:
+
 - Unified `cllm-mcp` command fully functional
 - Configuration-based server name resolution
 - List-all-daemon-tools feature
@@ -375,23 +397,27 @@ The ADR considered 3 alternatives:
 ## Testing Verification
 
 ### Unit Tests (Priority: HIGH)
+
 - [ ] Config resolution logic
 - [ ] Daemon detection with/without daemon
 - [ ] Fallback behavior
 - [ ] Server name resolution
 
 ### Integration Tests (Priority: HIGH)
+
 - [ ] Tool execution through daemon
 - [ ] Tool execution in direct mode
 - [ ] Daemon lifecycle (start/stop/status)
 - [ ] Config loading and validation
 
 ### Performance Tests (Priority: MEDIUM)
+
 - [ ] Measure daemon vs. direct mode speed
 - [ ] Verify 5-10x improvement claim
 - [ ] Load testing with multiple calls
 
 ### Edge Case Tests (Priority: MEDIUM)
+
 - [ ] Daemon crash recovery
 - [ ] Socket collision handling
 - [ ] Multiple concurrent commands
@@ -437,16 +463,16 @@ def acquire_lock(socket_path: str):
 
 ## Summary Table
 
-| Criterion | Rating | Notes |
-|-----------|--------|-------|
-| Problem Statement | ⭐⭐⭐⭐⭐ | Clear, compelling, well-articulated |
-| Decision Quality | ⭐⭐⭐⭐⭐ | Achieves all goals, proper alternatives |
-| Implementation | ⭐⭐⭐⭐⭐ | Fully functional, clean code |
-| Design | ⭐⭐⭐⭐⭐ | Well-structured, extensible |
-| Consequences | ⭐⭐⭐⭐⭐ | Well-anticipated and mitigated |
-| Documentation | ⭐⭐⭐⭐⭐ | Comprehensive and clear |
-| Testing | ⭐⭐⭐⭐☆ | Core tested, needs more coverage |
-| Status Update | ⭐⭐⭐☆☆ | ADR not updated post-implementation |
+| Criterion         | Rating     | Notes                                   |
+| ----------------- | ---------- | --------------------------------------- |
+| Problem Statement | ⭐⭐⭐⭐⭐ | Clear, compelling, well-articulated     |
+| Decision Quality  | ⭐⭐⭐⭐⭐ | Achieves all goals, proper alternatives |
+| Implementation    | ⭐⭐⭐⭐⭐ | Fully functional, clean code            |
+| Design            | ⭐⭐⭐⭐⭐ | Well-structured, extensible             |
+| Consequences      | ⭐⭐⭐⭐⭐ | Well-anticipated and mitigated          |
+| Documentation     | ⭐⭐⭐⭐⭐ | Comprehensive and clear                 |
+| Testing           | ⭐⭐⭐⭐☆  | Core tested, needs more coverage        |
+| Status Update     | ⭐⭐⭐☆☆   | ADR not updated post-implementation     |
 
 **Overall Score:** 9.2/10 ✅
 
@@ -457,6 +483,7 @@ def acquire_lock(socket_path: str):
 ### Assessment: ✅ **APPROVED - Excellent ADR with Successful Implementation**
 
 **Strengths:**
+
 1. Well-reasoned decision addressing real UX problems
 2. Fully implemented with excellent code quality
 3. All design goals achieved
@@ -465,6 +492,7 @@ def acquire_lock(socket_path: str):
 6. Graceful degradation and fallback mechanisms
 
 **Action Items:**
+
 1. 🔴 **CRITICAL**: Update ADR status to "Accepted (Implemented)"
 2. 🟠 **IMPORTANT**: Link ADR to implementation commit
 3. 🟠 **IMPORTANT**: Create test plan for coverage gaps
@@ -472,6 +500,7 @@ def acquire_lock(socket_path: str):
 5. 🟡 **RECOMMENDED**: Document known limitations
 
 **Recommendation:** This ADR represents an excellent example of:
+
 - Clear problem identification
 - Thoughtful decision-making
 - Successful implementation

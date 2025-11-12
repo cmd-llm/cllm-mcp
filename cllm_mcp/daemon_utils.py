@@ -8,14 +8,16 @@ import os
 import sys
 from typing import Optional
 
-from .socket_utils import SocketClient, is_daemon_available, DAEMON_CHECK_TIMEOUT, DEFAULT_SOCKET_PATH
+from .socket_utils import (
+    is_daemon_available,
+)
 
 
 def should_use_daemon(
     socket_path: str,
     no_daemon: bool = False,
     timeout: float = 1.0,
-    verbose: bool = False
+    verbose: bool = False,
 ) -> bool:
     """
     Determine if daemon should be used for tool execution.
@@ -35,7 +37,9 @@ def should_use_daemon(
     """
     if no_daemon:
         if verbose:
-            print("[mode] Using direct mode (daemon explicitly disabled)", file=sys.stderr)
+            print(
+                "[mode] Using direct mode (daemon explicitly disabled)", file=sys.stderr
+            )
         return False
 
     if is_daemon_available(socket_path, timeout, verbose):
@@ -44,7 +48,9 @@ def should_use_daemon(
         return True
 
     if verbose:
-        print("[mode] Using direct mode (daemon not available, fallback)", file=sys.stderr)
+        print(
+            "[mode] Using direct mode (daemon not available, fallback)", file=sys.stderr
+        )
     return False
 
 

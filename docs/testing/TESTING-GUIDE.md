@@ -29,6 +29,7 @@ uv run pytest tests/ -v --cov=cllm_mcp --cov-report=html
 Tests are organized by type:
 
 ### Unit Tests
+
 Fast, isolated tests that don't require external processes or files.
 
 ```bash
@@ -43,6 +44,7 @@ uv run pytest tests/unit/test_main_dispatcher.py::TestMainDispatcher::test_dispa
 ```
 
 **Test Files:**
+
 - `test_main_dispatcher.py` - Command routing and dispatch
 - `test_daemon_detection.py` - Smart daemon detection logic
 - `test_config_management.py` - Configuration loading and validation
@@ -51,6 +53,7 @@ uv run pytest tests/unit/test_main_dispatcher.py::TestMainDispatcher::test_dispa
 - (Existing) `test_mcp_daemon.py` - MCPDaemon class
 
 ### Integration Tests
+
 Slower tests that may spawn processes, use network, or filesystem.
 
 ```bash
@@ -68,6 +71,7 @@ uv run pytest -m daemon -v
 ```
 
 **Test Files:**
+
 - `test_daemon_mode_integration.py` - End-to-end daemon functionality
 - `test_direct_mode_integration.py` - Direct mode without daemon
 - `test_fallback_behavior.py` - Transparent daemon->direct fallback
@@ -136,6 +140,7 @@ uv run pytest tests/ --cov=cllm_mcp --cov-report=term-missing
 ### Coverage Targets
 
 According to ADR-0003 testing strategy:
+
 - Overall: 85% minimum
 - New code (main.py, config.py): 90%
 - Modified code (mcp_cli.py, mcp_daemon.py): 85%
@@ -195,16 +200,19 @@ uv run pytest tests/ -v --capture=no
 ## Common Commands
 
 ### Quick Unit Test Run
+
 ```bash
 uv run pytest tests/unit/ -v --tb=short
 ```
 
 ### Full Test Suite with Coverage
+
 ```bash
 uv run pytest tests/ -v --cov=cllm_mcp --cov-report=term-missing
 ```
 
 ### Test Specific Component
+
 ```bash
 # Test daemon detection
 uv run pytest tests/unit/test_daemon_detection.py -v
@@ -217,6 +225,7 @@ uv run pytest tests/unit/test_main_dispatcher.py -v
 ```
 
 ### Find and Run Tests
+
 ```bash
 # List all tests without running them
 uv run pytest tests/ --collect-only -q
@@ -229,6 +238,7 @@ uv run pytest tests/ -k "daemon" -v
 ```
 
 ### Parallel Test Execution
+
 ```bash
 # Install pytest-xdist
 uv pip install pytest-xdist

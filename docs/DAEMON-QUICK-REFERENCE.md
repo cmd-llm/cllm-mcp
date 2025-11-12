@@ -2,26 +2,28 @@
 
 ## Quick Facts
 
-| Aspect | Detail |
-|--------|--------|
-| **Entry Point** | `cllm-mcp` (unified command) from `cllm_mcp/main.py` |
-| **Daemon Server** | `mcp_daemon.py` - Listens on Unix socket, manages MCP server processes |
+| Aspect               | Detail                                                                                         |
+| -------------------- | ---------------------------------------------------------------------------------------------- |
+| **Entry Point**      | `cllm-mcp` (unified command) from `cllm_mcp/main.py`                                           |
+| **Daemon Server**    | `mcp_daemon.py` - Listens on Unix socket, manages MCP server processes                         |
 | **Config Discovery** | Auto-finds: `./mcp-config.json`, `~/.config/cllm-mcp/config.json`, `/etc/cllm-mcp/config.json` |
-| **Socket Path** | Default: `/tmp/mcp-daemon.sock`, configurable via `--socket` or `MCP_DAEMON_SOCKET` env var |
-| **Communication** | JSON over Unix sockets, 1MB message limit, newline-delimited |
-| **Server Caching** | Server ID = MD5 hash of command (first 12 chars). Same command = cached server |
-| **Mode Selection** | Auto-detects daemon, falls back to direct mode if unavailable |
+| **Socket Path**      | Default: `/tmp/mcp-daemon.sock`, configurable via `--socket` or `MCP_DAEMON_SOCKET` env var    |
+| **Communication**    | JSON over Unix sockets, 1MB message limit, newline-delimited                                   |
+| **Server Caching**   | Server ID = MD5 hash of command (first 12 chars). Same command = cached server                 |
+| **Mode Selection**   | Auto-detects daemon, falls back to direct mode if unavailable                                  |
 
 ---
 
 ## Daemon Initialization
 
 What the daemon knows at startup:
+
 - Socket path
 - That it should listen for connections
 - Zero servers initially (lazy loading)
 
 What the daemon does NOT know:
+
 - Configuration files
 - Server definitions
 - Which servers should auto-start
@@ -34,6 +36,7 @@ What the daemon does NOT know:
 ## Configuration System
 
 ### Discovery Order (First Match Wins)
+
 1. `--config` argument (explicit path)
 2. `./mcp-config.json` or `./.mcp-config.json` (current dir)
 3. `~/.config/cllm-mcp/config.json` (home)
@@ -41,6 +44,7 @@ What the daemon does NOT know:
 5. No config found → None
 
 ### Config File Format
+
 ```json
 {
   "mcpServers": {
@@ -57,6 +61,7 @@ What the daemon does NOT know:
 ```
 
 ### Server Resolution
+
 - Input: `"time"` (server name) or `"uvx mcp-server-time"` (command)
 - Output: `("uvx mcp-server-time", "time")` or `("uvx mcp-server-time", None)`
 - If config exists and name matches → use config command + args
@@ -67,6 +72,7 @@ What the daemon does NOT know:
 ## Daemon Protocol
 
 ### Socket Communication
+
 - **Transport**: Unix domain socket (AF_UNIX, SOCK_STREAM)
 - **Format**: JSON + newline delimiter
 - **Timeout**: 1s for detection, 30s for tools, 5s for control
@@ -74,28 +80,33 @@ What the daemon does NOT know:
 ### Request Types
 
 **Start Server**
+
 ```json
-{"command": "start", "server": "ID", "server_command": "..."}
+{ "command": "start", "server": "ID", "server_command": "..." }
 ```
 
 **Call Tool**
+
 ```json
 {"command": "call", "server": "ID", "tool": "TOOL_NAME", "arguments": {...}}
 ```
 
 **List Tools (Single Server)**
+
 ```json
-{"command": "list", "server": "ID"}
+{ "command": "list", "server": "ID" }
 ```
 
 **List All Tools (All Servers)**
+
 ```json
-{"command": "list-all"}
+{ "command": "list-all" }
 ```
 
 **Get Status**
+
 ```json
-{"command": "status"}
+{ "command": "status" }
 ```
 
 ---
@@ -103,16 +114,19 @@ What the daemon does NOT know:
 ## Information Flow
 
 ### To Daemon
+
 - Full server commands
 - Tool names and parameters
 - Control signals (start, stop, status, shutdown)
 
 ### From Daemon
+
 - Tool definitions and results
 - Status information
 - Error messages
 
 ### NOT Shared
+
 - Config file paths
 - Config file contents
 - Server metadata (descriptions, env vars)
@@ -171,11 +185,13 @@ What the daemon does NOT know:
 ## Entry Points & Command Routing
 
 ### Current (main branch)
+
 ```
 cllm-mcp → cllm_mcp/main.py:main()
 ```
 
 ### Commands
+
 ```
 cllm-mcp list-tools [server]        → handle_list_tools()
 cllm-mcp call-tool [server] [tool] [params] → handle_call_tool()
@@ -185,6 +201,7 @@ cllm-mcp config list|validate       → handle_config()
 ```
 
 ### Global Options
+
 ```
 --config FILE           Config file path (overrides auto-discovery)
 --socket PATH          Daemon socket path (default: /tmp/mcp-daemon.sock)
@@ -198,6 +215,7 @@ cllm-mcp config list|validate       → handle_config()
 ## Key Data Structures
 
 ### MCPDaemon
+
 ```python
 {
   socket_path: "/tmp/mcp-daemon.sock",
@@ -212,6 +230,7 @@ cllm-mcp config list|validate       → handle_config()
 ```
 
 ### Configuration
+
 ```python
 {
   "mcpServers": {
@@ -267,18 +286,21 @@ cllm-mcp daemon restart                 # Restart daemon
 The architecture intentionally keeps daemon and config separate:
 
 **Client Responsibility:**
+
 - Discover and load config
 - Resolve server names to commands
 - Apply environment variables
 - Choose daemon vs. direct mode
 
 **Daemon Responsibility:**
+
 - Listen for requests
 - Cache and manage server processes
 - Execute tool calls
 - Report status
 
 This separation means:
+
 - Daemon stays simple and stateless
 - Multiple clients can share same daemon
 - Config can change without daemon restart
@@ -288,14 +310,14 @@ This separation means:
 
 ## Files at a Glance
 
-| File | Purpose |
-|------|---------|
-| `mcp_daemon.py` | Daemon server, request handling, process caching (436 lines) |
-| `mcp_cli.py` | Client impl, direct mode, daemon client funcs (450 lines) |
-| `cllm_mcp/main.py` | Unified dispatcher, command routing (400 lines) |
-| `cllm_mcp/config.py` | Config loading, validation, resolution (310 lines) |
-| `cllm_mcp/daemon_utils.py` | Daemon detection, socket path resolution (71 lines) |
-| `cllm_mcp/socket_utils.py` | Socket communication protocol (186 lines) |
+| File                       | Purpose                                                      |
+| -------------------------- | ------------------------------------------------------------ |
+| `mcp_daemon.py`            | Daemon server, request handling, process caching (436 lines) |
+| `mcp_cli.py`               | Client impl, direct mode, daemon client funcs (450 lines)    |
+| `cllm_mcp/main.py`         | Unified dispatcher, command routing (400 lines)              |
+| `cllm_mcp/config.py`       | Config loading, validation, resolution (310 lines)           |
+| `cllm_mcp/daemon_utils.py` | Daemon detection, socket path resolution (71 lines)          |
+| `cllm_mcp/socket_utils.py` | Socket communication protocol (186 lines)                    |
 
 ---
 

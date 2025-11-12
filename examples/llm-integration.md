@@ -5,6 +5,7 @@ This document shows how to integrate the MCP CLI with various LLM workflows.
 ## Example 1: Simple File Operations Prompt
 
 ### Traditional Approach (High Token Usage)
+
 ```
 System Prompt: You have access to the following tools...
 [Include full MCP tool definitions: ~2000 tokens]
@@ -21,6 +22,7 @@ System Prompt: You have access to the following tools...
 **Token count**: ~2000-3000 tokens for tool definitions
 
 ### MCP CLI Approach (Minimal Token Usage)
+
 ```
 System Prompt: You can perform file operations using these bash commands:
 
@@ -43,6 +45,7 @@ All commands return JSON. Extract data using jq.
 ## Example 2: GitHub Operations
 
 ### LLM Prompt
+
 ```
 You can interact with GitHub using these commands:
 
@@ -80,6 +83,7 @@ Remember to set GITHUB_TOKEN in your environment or mcp-config.json.
 **User**: "Create a GitHub issue in myrepo about the login bug"
 
 **LLM Response**:
+
 ```bash
 ./mcp-wrapper.sh github call-tool create_issue '{
   "owner": "myusername",
@@ -94,11 +98,13 @@ Remember to set GITHUB_TOKEN in your environment or mcp-config.json.
 ### Task: "Read a config file and create a GitHub issue with its contents"
 
 **LLM Reasoning**:
+
 1. Read the config file
 2. Extract relevant information
 3. Create GitHub issue
 
 **LLM Execution**:
+
 ```bash
 # Step 1: Read config file
 CONFIG=$(./mcp-wrapper.sh filesystem call-tool read_file '{"path": "/path/to/config.json"}')
@@ -120,6 +126,7 @@ CONTENT=$(echo "$CONFIG" | jq -r '.content[0].text')
 For frequently used operations, create specialized wrappers:
 
 ### create-bug-report.sh
+
 ```bash
 #!/bin/bash
 # Create a bug report from a log file
@@ -145,6 +152,7 @@ RECENT_ERRORS=$(echo "$LOG_CONTENT" | tail -20)
 ```
 
 ### LLM Prompt
+
 ```
 To create a bug report from logs, use:
   ./create-bug-report.sh <log_file> <owner> <repo>
@@ -157,6 +165,7 @@ To create a bug report from logs, use:
 ### Task: "Monitor a directory and report changes to GitHub"
 
 **LLM Script Generation**:
+
 ```bash
 #!/bin/bash
 # monitor-and-report.sh
@@ -195,6 +204,7 @@ done
 ## Example 6: Error Handling Pattern
 
 ### Robust LLM-Generated Script
+
 ```bash
 #!/bin/bash
 set -euo pipefail
@@ -255,11 +265,11 @@ cat /tmp/result1.json /tmp/result2.json /tmp/result3.json | jq -s '.'
 
 ### Scenario: File operations + GitHub + Database access
 
-| Approach | Tool Definitions | Instructions | Total Tokens |
-|----------|-----------------|--------------|--------------|
-| Traditional MCP | 5,000 | 500 | **5,500** |
-| MCP CLI | 0 | 300 | **300** |
-| **Savings** | **100%** | **-40%** | **~95%** |
+| Approach        | Tool Definitions | Instructions | Total Tokens |
+| --------------- | ---------------- | ------------ | ------------ |
+| Traditional MCP | 5,000            | 500          | **5,500**    |
+| MCP CLI         | 0                | 300          | **300**      |
+| **Savings**     | **100%**         | **-40%**     | **~95%**     |
 
 ## Best Practices for LLM Integration
 
@@ -272,7 +282,7 @@ cat /tmp/result1.json /tmp/result2.json /tmp/result3.json | jq -s '.'
 
 ## Sample System Prompt Template
 
-```
+````
 You are an AI assistant with access to MCP (Model Context Protocol) tools via bash scripts.
 
 ## Available MCP Servers
@@ -298,9 +308,10 @@ To read a file and create an issue:
 ```bash
 CONTENT=$(./mcp-wrapper.sh filesystem call-tool read_file '{"path": "/tmp/file.txt"}' | jq -r '.content[0].text')
 ./mcp-wrapper.sh github call-tool create_issue "{\"owner\": \"user\", \"repo\": \"repo\", \"title\": \"Report\", \"body\": \"$CONTENT\"}"
-```
+````
 
 Execute bash commands to accomplish user requests.
+
 ```
 
 ## Conclusion
@@ -312,3 +323,4 @@ The MCP CLI approach dramatically reduces token usage while maintaining full fun
 - Simpler prompts
 - Better reliability (less complex tool calling)
 - Easier debugging and testing
+```

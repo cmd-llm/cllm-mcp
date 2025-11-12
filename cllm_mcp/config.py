@@ -1,60 +1,154 @@
 """
-Configuration management for ADR-0003.
+Configuration management for ADR-0003 and ADR-0004.
 
-Handles loading, validating, and discovering MCP server configurations.
+Handles loading, validating, and discovering MCP server configurations
+using CLLM-style configuration precedence.
+
+Configuration Search Order (lowest to highest priority):
+1. ~/.cllm/mcp-config.json         (Global defaults)
+2. ./.cllm/mcp-config.json         (Project-specific)
+3. ./mcp-config.json               (Current directory)
+4. Environment variables (CLLM_MCP_*) (CI/CD, containerized)
+5. CLI arguments                    (Explicit overrides)
 """
 
 import json
 import os
 import sys
 from pathlib import Path
-from typing import Dict, Any, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 
 class ConfigError(Exception):
     """Raised when configuration is invalid."""
+
     pass
 
 
-def find_config_file(explicit_path: Optional[str] = None) -> Optional[Path]:
+def _get_env_config_override() -> Optional[str]:
     """
-    Find configuration file in standard locations.
+    Get configuration file path from environment variable.
 
-    Priority:
-    1. Explicit path (--config argument)
-    2. Current working directory (mcp-config.json, .mcp-config.json)
-    3. Home directory (~/.config/cllm-mcp/config.json)
-    4. System directory (/etc/cllm-mcp/config.json)
-
-    Args:
-        explicit_path: Explicit path to config file
+    Supports: CLLM_MCP_CONFIG
 
     Returns:
-        Path to config file if found, None otherwise
+        Config file path from environment, or None if not set
     """
+    return os.environ.get("CLLM_MCP_CONFIG")
+
+
+def find_config_file(
+    explicit_path: Optional[str] = None, verbose: bool = False
+) -> Tuple[Optional[Path], List[str]]:
+    """
+    Find configuration file using CLLM precedence.
+
+    ADR-0004 Configuration Precedence (lowest to highest priority):
+    1. ~/.cllm/mcp-config.json         (Global defaults)
+    2. ./.cllm/mcp-config.json         (Project-specific)
+    3. ./mcp-config.json               (Current directory)
+    4. Environment variables (CLLM_MCP_CONFIG)
+    5. Explicit path argument (highest priority)
+
+    Args:
+        explicit_path: Explicit path to config file (highest priority)
+        verbose: If True, return trace of all checked paths
+
+    Returns:
+        Tuple of (path_to_config, trace_messages)
+        - path_to_config: Path to config file if found, None otherwise
+        - trace_messages: List of diagnostic messages (empty if verbose=False)
+    """
+    trace = []
+
+    if verbose:
+        trace.append("[CONFIG] Searching for configuration files...")
+
+    # Priority 5: Explicit path (highest priority)
     if explicit_path:
         path = Path(explicit_path).expanduser()
+        if verbose:
+            trace.append(f"[CONFIG] Checking explicit path: {path}")
         if path.exists():
-            return path
-        return None
+            if verbose:
+                trace.append(f"[CONFIG] ✓ Found (highest priority): {path}")
+            return path, trace
+        if verbose:
+            trace.append(f"[CONFIG] ✗ Not found: {path}")
+        return None, trace
 
-    # Check current working directory
-    for name in ["mcp-config.json", ".mcp-config.json"]:
-        path = Path.cwd() / name
+    # Priority 4: Environment variables
+    env_path = _get_env_config_override()
+    if env_path:
+        path = Path(env_path).expanduser()
+        if verbose:
+            trace.append(f"[CONFIG] Checking CLLM_MCP_CONFIG: {path}")
         if path.exists():
-            return path
+            if verbose:
+                trace.append(f"[CONFIG] ✓ Found (environment): {path}")
+            return path, trace
+        if verbose:
+            trace.append(f"[CONFIG] ✗ Not found: {path}")
 
-    # Check home directory
-    home_config = Path.home() / ".config" / "cllm-mcp" / "config.json"
-    if home_config.exists():
-        return home_config
+    # Priority 3: Current directory (./mcp-config.json)
+    cwd_config = Path.cwd() / "mcp-config.json"
+    if verbose:
+        trace.append(f"[CONFIG] Checking current directory: {cwd_config}")
+    if cwd_config.exists():
+        if verbose:
+            trace.append(f"[CONFIG] ✓ Found (current directory): {cwd_config}")
+        return cwd_config, trace
+    if verbose:
+        trace.append(f"[CONFIG] ✗ Not found: {cwd_config}")
 
-    # Check system directory
-    system_config = Path("/etc/cllm-mcp/config.json")
-    if system_config.exists():
-        return system_config
+    # Priority 2: Project-specific (./.cllm/mcp-config.json)
+    project_config = Path.cwd() / ".cllm" / "mcp-config.json"
+    if verbose:
+        trace.append(f"[CONFIG] Checking project config: {project_config}")
+    if project_config.exists():
+        if verbose:
+            trace.append(f"[CONFIG] ✓ Found (project-specific): {project_config}")
+        return project_config, trace
+    if verbose:
+        trace.append(f"[CONFIG] ✗ Not found: {project_config}")
 
-    return None
+    # Priority 1: Global defaults (~/.cllm/mcp-config.json)
+    global_config = Path.home() / ".cllm" / "mcp-config.json"
+    if verbose:
+        trace.append(f"[CONFIG] Checking global config: {global_config}")
+    if global_config.exists():
+        if verbose:
+            trace.append(f"[CONFIG] ✓ Found (global defaults): {global_config}")
+        return global_config, trace
+    if verbose:
+        trace.append(f"[CONFIG] ✗ Not found: {global_config}")
+
+    # Backward compatibility: Check old paths (deprecated)
+    old_paths = [
+        Path.home() / ".config" / "cllm-mcp" / "config.json",
+        Path("/etc/cllm-mcp/config.json"),
+    ]
+
+    for old_path in old_paths:
+        if verbose:
+            trace.append(f"[CONFIG] Checking deprecated path: {old_path}")
+        if old_path.exists():
+            if verbose:
+                trace.append(
+                    f"[CONFIG] ⚠ Found at deprecated location: {old_path}"
+                )
+                trace.append(
+                    f"[CONFIG] ⚠ WARNING: Old config locations are deprecated"
+                )
+                trace.append(
+                    f"[CONFIG] ⚠ Please migrate to ~/.cllm/mcp-config.json"
+                )
+            return old_path, trace
+
+    if verbose:
+        trace.append("[CONFIG] ✗ No configuration file found")
+
+    return None, trace
 
 
 def load_config(config_path: str) -> Dict[str, Any]:
@@ -76,7 +170,7 @@ def load_config(config_path: str) -> Dict[str, Any]:
         raise ConfigError(f"Configuration file not found: {config_path}")
 
     try:
-        with open(path, 'r') as f:
+        with open(path, "r") as f:
             config = json.load(f)
     except json.JSONDecodeError as e:
         raise ConfigError(f"Invalid JSON in {config_path}: {e}")
@@ -123,13 +217,17 @@ def validate_config(config: Dict[str, Any]) -> List[str]:
         if "env" in server_config and not isinstance(server_config["env"], dict):
             errors.append(f"Server '{server_name}': 'env' must be a dictionary")
 
-        if "description" in server_config and not isinstance(server_config["description"], str):
+        if "description" in server_config and not isinstance(
+            server_config["description"], str
+        ):
             errors.append(f"Server '{server_name}': 'description' must be a string")
 
     return errors
 
 
-def get_server_config(config: Dict[str, Any], server_name: str) -> Optional[Dict[str, Any]]:
+def get_server_config(
+    config: Dict[str, Any], server_name: str
+) -> Optional[Dict[str, Any]]:
     """
     Get configuration for a specific server.
 
@@ -162,7 +260,9 @@ def build_server_command(server_config: Dict[str, Any]) -> str:
     return command
 
 
-def resolve_server_ref(server_ref: str, config: Optional[Dict[str, Any]] = None) -> Tuple[str, Optional[str]]:
+def resolve_server_ref(
+    server_ref: str, config: Optional[Dict[str, Any]] = None
+) -> Tuple[str, Optional[str]]:
     """
     Resolve a server reference to a full command.
 
@@ -206,30 +306,43 @@ def list_servers(config: Dict[str, Any]) -> List[Dict[str, Any]]:
 
     for name in sorted(config_servers.keys()):
         server_config = config_servers[name]
-        servers.append({
-            "name": name,
-            "command": server_config.get("command", ""),
-            "args": server_config.get("args", []),
-            "description": server_config.get("description", ""),
-            "env": server_config.get("env", {})
-        })
+        servers.append(
+            {
+                "name": name,
+                "command": server_config.get("command", ""),
+                "args": server_config.get("args", []),
+                "description": server_config.get("description", ""),
+                "env": server_config.get("env", {}),
+            }
+        )
 
     return servers
 
 
 def cmd_config_list(args):
     """Command to list configured servers."""
+    verbose = getattr(args, "verbose", False)
+
     # Find config file
     config_path = args.config
-    if not config_path:
-        found_path = find_config_file()
-        if not found_path:
-            print("Error: No configuration file found", file=sys.stderr)
-            print("Searched in: .", file=sys.stderr)
-            print("             ~/.config/cllm-mcp/config.json", file=sys.stderr)
-            print("             /etc/cllm-mcp/config.json", file=sys.stderr)
-            sys.exit(1)
-        config_path = str(found_path)
+    found_path, trace = find_config_file(config_path, verbose=verbose)
+
+    # Print trace messages if verbose
+    if trace:
+        for msg in trace:
+            print(msg)
+
+    if not found_path:
+        print("Error: No configuration file found", file=sys.stderr)
+        print("\nSearched in (priority order):", file=sys.stderr)
+        print("  1. ~/.cllm/mcp-config.json (global defaults)", file=sys.stderr)
+        print("  2. ./.cllm/mcp-config.json (project-specific)", file=sys.stderr)
+        print("  3. ./mcp-config.json (current directory)", file=sys.stderr)
+        print("  4. CLLM_MCP_CONFIG environment variable", file=sys.stderr)
+        print("  5. Explicit --config argument", file=sys.stderr)
+        sys.exit(1)
+
+    config_path = str(found_path)
 
     # Load and validate config
     try:
@@ -248,7 +361,7 @@ def cmd_config_list(args):
     # List servers
     servers = list_servers(config)
 
-    if args.json:
+    if getattr(args, "json", False):
         print(json.dumps(servers, indent=2))
     else:
         if not servers:
@@ -258,27 +371,35 @@ def cmd_config_list(args):
         print(f"Configured MCP servers (from {config_path}):\n")
         for server in servers:
             print(f"  {server['name']}")
-            if server['description']:
+            if server["description"]:
                 print(f"    Description: {server['description']}")
             print(f"    Command: {server['command']}")
-            if server['args']:
+            if server["args"]:
                 print(f"    Args: {' '.join(server['args'])}")
-            if server['env']:
-                env_str = ', '.join(f"{k}={v}" for k, v in server['env'].items())
+            if server["env"]:
+                env_str = ", ".join(f"{k}={v}" for k, v in server["env"].items())
                 print(f"    Env: {env_str}")
             print()
 
 
 def cmd_config_validate(args):
     """Command to validate configuration file."""
+    verbose = getattr(args, "verbose", False)
+
     # Find config file
     config_path = args.config
-    if not config_path:
-        found_path = find_config_file()
-        if not found_path:
-            print("Error: No configuration file found", file=sys.stderr)
-            sys.exit(1)
-        config_path = str(found_path)
+    found_path, trace = find_config_file(config_path, verbose=verbose)
+
+    # Print trace messages if verbose
+    if trace:
+        for msg in trace:
+            print(msg)
+
+    if not found_path:
+        print("Error: No configuration file found", file=sys.stderr)
+        sys.exit(1)
+
+    config_path = str(found_path)
 
     # Load and validate config
     try:
@@ -301,8 +422,123 @@ def cmd_config_validate(args):
 
     # Check if commands are executable (if possible)
     for server in servers:
-        cmd = server['command'].split()[0]  # Get first part
+        cmd = server["command"].split()[0]  # Get first part
         # Try to find the command
         if os.path.isfile(cmd):
             if not os.access(cmd, os.X_OK):
                 print(f"⚠ Warning: {server['name']}: command not executable: {cmd}")
+
+
+def cmd_config_show(args):
+    """Command to show which configuration file is being used."""
+    verbose = getattr(args, "verbose", False)
+
+    # Find config file (always verbose for this command)
+    config_path = args.config
+    found_path, trace = find_config_file(config_path, verbose=True)
+
+    print("\n=== Configuration File Resolution ===\n")
+
+    # Always show the trace for this command
+    for msg in trace:
+        print(msg)
+
+    if found_path:
+        print(f"\n[CONFIG] Using configuration file:")
+        print(f"  {found_path}")
+
+        # Try to load and show info
+        try:
+            config = load_config(str(found_path))
+            errors = validate_config(config)
+
+            if not errors:
+                servers = list_servers(config)
+                print(f"\n[CONFIG] Configuration Status: ✓ Valid")
+                print(f"[CONFIG] Servers configured: {len(servers)}")
+                if servers:
+                    print(f"[CONFIG] Available servers: {', '.join(s['name'] for s in servers)}")
+            else:
+                print(f"\n[CONFIG] Configuration Status: ✗ Invalid")
+                for error in errors:
+                    print(f"[CONFIG]   - {error}")
+        except ConfigError as e:
+            print(f"\n[CONFIG] Configuration Status: ✗ Error")
+            print(f"[CONFIG]   {e}")
+    else:
+        print(f"\n[CONFIG] No configuration file found!")
+        print(f"[CONFIG] To create one, use:")
+        print(f"[CONFIG]   mkdir -p ~/.cllm")
+        print(f"[CONFIG]   cat > ~/.cllm/mcp-config.json << 'EOF'")
+        print(f"[CONFIG] {{")
+        print(f"[CONFIG]   \"mcpServers\": {{}}")
+        print(f"[CONFIG] }}")
+        print(f"[CONFIG] EOF")
+
+
+def cmd_config_migrate(args):
+    """Command to migrate old config files to new CLLM folder structure."""
+    print("\n=== Configuration Migration Tool ===\n")
+
+    # Check for old config locations
+    old_locations = [
+        Path.home() / ".config" / "cllm-mcp" / "config.json",
+        Path("/etc/cllm-mcp/config.json"),
+    ]
+
+    new_location = Path.home() / ".cllm" / "mcp-config.json"
+
+    old_found = []
+    for old_path in old_locations:
+        if old_path.exists():
+            old_found.append(old_path)
+
+    if not old_found:
+        print("✓ No old configuration files found.")
+        print("  Your configuration is already using the new CLLM structure!")
+        return
+
+    print(f"Found {len(old_found)} old configuration file(s):\n")
+    for path in old_found:
+        print(f"  - {path}")
+
+    if new_location.exists():
+        print(f"\n⚠ WARNING: New location already exists!")
+        print(f"  {new_location}")
+        print(f"\nPlease manually migrate your configuration.")
+        print(f"Do not overwrite the existing file.")
+        return
+
+    # Ask for confirmation
+    response = input(f"\nMigrate to {new_location}? (yes/no): ")
+    if response.lower() not in ["yes", "y"]:
+        print("Migration cancelled.")
+        return
+
+    try:
+        # Create .cllm directory
+        new_location.parent.mkdir(parents=True, exist_ok=True)
+
+        # Copy the first old config to new location
+        source = old_found[0]
+        with open(source, "r") as f:
+            config_data = f.read()
+
+        with open(new_location, "w") as f:
+            f.write(config_data)
+
+        print(f"\n✓ Migrated successfully!")
+        print(f"  Source: {source}")
+        print(f"  Target: {new_location}")
+
+        if len(old_found) > 1:
+            print(f"\n⚠ Found {len(old_found)} old configuration files.")
+            print(f"  Migrated from the first one.")
+            print(f"  Other locations:")
+            for path in old_found[1:]:
+                print(f"    - {path}")
+            print(f"  You can safely remove these files after verifying migration was successful.")
+
+    except Exception as e:
+        print(f"\n✗ Migration failed: {e}", file=sys.stderr)
+        sys.exit(1)

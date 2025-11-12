@@ -22,28 +22,33 @@ Example:
     ./mcp_daemon.py stop
 """
 
-import socket
+import argparse
 import json
-import threading
-import sys
 import os
 import signal
+import socket
+import sys
+import threading
 import time
-import argparse
 from pathlib import Path
-from typing import Dict, Any, Optional
+from typing import Any, Dict, Optional
+
 from mcp_cli import MCPClient
 
 # Add parent directory to path for imports
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
-from cllm_mcp.socket_utils import SocketClient, DAEMON_CTRL_TIMEOUT
 from cllm_mcp.config import find_config_file, load_config, validate_config
+from cllm_mcp.socket_utils import DAEMON_CTRL_TIMEOUT, SocketClient
 
 
 class MCPDaemon:
     """Daemon that manages multiple MCP server processes."""
 
-    def __init__(self, socket_path: str = "/tmp/mcp-daemon.sock", config_path: Optional[str] = None):
+    def __init__(
+        self,
+        socket_path: str = "/tmp/mcp-daemon.sock",
+        config_path: Optional[str] = None,
+    ):
         self.socket_path = socket_path
         self.servers: Dict[str, MCPClient] = {}
         self.lock = threading.Lock()
@@ -125,9 +130,9 @@ class MCPDaemon:
                     tools = client.list_tools()
                     all_tools_by_server[server_id] = {
                         "tools": tools,
-                        "tool_count": len(tools)
+                        "tool_count": len(tools),
                     }
-                except Exception as e:
+                except Exception:
                     # Server may have crashed, remove it
                     try:
                         client.stop()
@@ -139,7 +144,9 @@ class MCPDaemon:
                 "success": True,
                 "servers": all_tools_by_server,
                 "server_count": len(all_tools_by_server),
-                "total_tools": sum(s.get("tool_count", 0) for s in all_tools_by_server.values())
+                "total_tools": sum(
+                    s.get("tool_count", 0) for s in all_tools_by_server.values()
+                ),
             }
 
     def stop_server(self, name: str) -> Dict[str, Any]:
@@ -158,7 +165,7 @@ class MCPDaemon:
     def stop_all(self):
         """Stop all servers."""
         with self.lock:
-            for name, client in list(self.servers.items()):
+            for _name, client in list(self.servers.items()):
                 try:
                     client.stop()
                 except (Exception, OSError):
@@ -171,16 +178,13 @@ class MCPDaemon:
             return {
                 "status": "running",
                 "servers": list(self.servers.keys()),
-                "server_count": len(self.servers)
+                "server_count": len(self.servers),
             }
 
     def get_config(self) -> Dict[str, Any]:
         """Get available servers from configuration."""
         if not self.config:
-            return {
-                "success": False,
-                "error": "No configuration loaded"
-            }
+            return {"success": False, "error": "No configuration loaded"}
 
         try:
             servers = self.config.get("mcpServers", {})
@@ -190,20 +194,17 @@ class MCPDaemon:
                     "command": config.get("command", ""),
                     "args": config.get("args", []),
                     "description": config.get("description", ""),
-                    "running": name in self.servers
+                    "running": name in self.servers,
                 }
 
             return {
                 "success": True,
                 "config_path": self.config_path,
                 "servers": available_servers,
-                "server_count": len(available_servers)
+                "server_count": len(available_servers),
             }
         except Exception as e:
-            return {
-                "success": False,
-                "error": f"Error reading configuration: {str(e)}"
-            }
+            return {"success": False, "error": f"Error reading configuration: {str(e)}"}
 
     def handle_request(self, data: Dict[str, Any]) -> Dict[str, Any]:
         """Handle a client request."""
@@ -214,9 +215,7 @@ class MCPDaemon:
 
         elif cmd == "call":
             return self.call_tool(
-                data["server"],
-                data["tool"],
-                data.get("arguments", {})
+                data["server"], data["tool"], data.get("arguments", {})
             )
 
         elif cmd == "list":
@@ -260,9 +259,7 @@ class MCPDaemon:
                     conn, _ = sock.accept()
                     # Handle each connection in a separate thread
                     threading.Thread(
-                        target=self.handle_connection,
-                        args=(conn,),
-                        daemon=True
+                        target=self.handle_connection, args=(conn,), daemon=True
                     ).start()
                 except socket.timeout:
                     continue  # Check self.running again
@@ -323,7 +320,7 @@ def daemon_start(args):
             os.unlink(socket_path)
 
     # Get config path if provided
-    config_path = getattr(args, 'config', None)
+    config_path = getattr(args, "config", None)
     daemon = MCPDaemon(socket_path, config_path)
 
     # Handle signals for graceful shutdown
@@ -420,13 +417,13 @@ def daemon_status(args):
         result = client.send_request({"command": "status"})
         client.close()
 
-        if getattr(args, 'json', False):
+        if getattr(args, "json", False):
             print(json.dumps(result, indent=2))
         else:
             print(f"Daemon status: {result.get('status', 'unknown')}")
             print(f"Socket: {socket_path}")
             print(f"Active servers: {result.get('server_count', 0)}")
-            if result.get('servers'):
+            if result.get("servers"):
                 print(f"Server names: {', '.join(result['servers'])}")
 
     except ConnectionError:
@@ -444,13 +441,13 @@ def main():
     parser = argparse.ArgumentParser(
         description="MCP Daemon - Persistent MCP server manager",
         formatter_class=argparse.RawDescriptionHelpFormatter,
-        epilog=__doc__
+        epilog=__doc__,
     )
 
     parser.add_argument(
         "--socket",
         default="/tmp/mcp-daemon.sock",
-        help="Unix socket path (default: /tmp/mcp-daemon.sock)"
+        help="Unix socket path (default: /tmp/mcp-daemon.sock)",
     )
 
     subparsers = parser.add_subparsers(dest="command", help="Command to execute")
@@ -458,9 +455,7 @@ def main():
     # start command
     start_parser = subparsers.add_parser("start", help="Start the daemon")
     start_parser.add_argument(
-        "--foreground",
-        action="store_true",
-        help="Run in foreground (don't daemonize)"
+        "--foreground", action="store_true", help="Run in foreground (don't daemonize)"
     )
 
     # stop command
