@@ -28,8 +28,6 @@ dependencies = []
 
 [project.scripts]
 cllm-mcp = "cllm_mcp.main:main"
-mcp-cli = "mcp_cli:main"
-mcp-daemon = "mcp_daemon:main"
 
 [project.urls]
 Homepage = "https://github.com/oz-shoplogix/research"
