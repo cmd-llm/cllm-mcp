@@ -36,7 +36,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.uv]
-dev-dependencies = ["pytest>=7.0", "pytest-mock>=3.0"]
+dev-dependencies = ["pytest>=7.0", "pytest-mock>=3.0", "pytest-asyncio>=0.21.0"]
 
 [tool.hatch.build.targets.wheel]
 packages = ["."]
@@ -60,7 +60,11 @@ markers = [
   "slow: Tests that take longer to run",
   "socket: Tests requiring Unix socket operations",
   "daemon: Tests requiring daemon functionality",
+  "asyncio: Tests using asyncio",
 ]
+
+# Asyncio configuration
+asyncio_mode = "auto"
 
 # Coverage options
 [tool.coverage.run]

@@ -184,6 +184,8 @@ def validate_config(config: Dict[str, Any]) -> List[str]:
     """
     Validate configuration structure.
 
+    Validates both server configurations and daemon settings (ADR-0005).
+
     Args:
         config: Configuration dictionary to validate
 
@@ -221,6 +223,51 @@ def validate_config(config: Dict[str, Any]) -> List[str]:
             server_config["description"], str
         ):
             errors.append(f"Server '{server_name}': 'description' must be a string")
+
+        # ADR-0005: Validate new auto-start fields
+        if "autoStart" in server_config and not isinstance(
+            server_config["autoStart"], bool
+        ):
+            errors.append(f"Server '{server_name}': 'autoStart' must be a boolean")
+
+        if "optional" in server_config and not isinstance(
+            server_config["optional"], bool
+        ):
+            errors.append(f"Server '{server_name}': 'optional' must be a boolean")
+
+    # ADR-0005: Validate daemon configuration section
+    if "daemon" in config:
+        daemon_config = config["daemon"]
+        if not isinstance(daemon_config, dict):
+            errors.append("'daemon' section must be a dictionary")
+        else:
+            # Validate daemon field types
+            if "socket" in daemon_config and not isinstance(daemon_config["socket"], str):
+                errors.append("'daemon.socket' must be a string")
+
+            if "timeout" in daemon_config and not isinstance(daemon_config["timeout"], (int, float)):
+                errors.append("'daemon.timeout' must be a number")
+
+            if "maxServers" in daemon_config and not isinstance(daemon_config["maxServers"], int):
+                errors.append("'daemon.maxServers' must be an integer")
+
+            if "initializationTimeout" in daemon_config and not isinstance(
+                daemon_config["initializationTimeout"], (int, float)
+            ):
+                errors.append("'daemon.initializationTimeout' must be a number")
+
+            if "parallelInitialization" in daemon_config and not isinstance(
+                daemon_config["parallelInitialization"], int
+            ):
+                errors.append("'daemon.parallelInitialization' must be an integer")
+
+            # Validate onInitFailure enum
+            if "onInitFailure" in daemon_config:
+                valid_values = ["fail", "warn", "ignore"]
+                if daemon_config["onInitFailure"] not in valid_values:
+                    errors.append(
+                        f"'daemon.onInitFailure' must be one of: {', '.join(valid_values)}"
+                    )
 
     return errors
 
@@ -313,6 +360,8 @@ def list_servers(config: Dict[str, Any]) -> List[Dict[str, Any]]:
                 "args": server_config.get("args", []),
                 "description": server_config.get("description", ""),
                 "env": server_config.get("env", {}),
+                "autoStart": server_config.get("autoStart", True),  # ADR-0005
+                "optional": server_config.get("optional", False),   # ADR-0005
             }
         )
 
