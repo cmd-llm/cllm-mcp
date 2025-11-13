@@ -43,6 +43,7 @@ from mcp_cli import (
     cmd_interactive,
     cmd_list_tools,
     daemon_list_all_tools,
+    generate_json_example,
 )
 from mcp_daemon import daemon_start, daemon_status, daemon_stop
 
@@ -50,7 +51,7 @@ from mcp_daemon import daemon_start, daemon_status, daemon_stop
 def _display_all_daemon_tools(
     result: Dict[str, Any], json_output: bool = False
 ) -> None:
-    """Display all tools from all daemon servers."""
+    """Display all tools from all daemon servers in markdown format with examples."""
     import json as json_module
 
     if json_output:
@@ -65,17 +66,31 @@ def _display_all_daemon_tools(
             return
 
         print(
-            f"Tools from {server_count} active daemon server(s) ({total_tools} total tools):\n"
+            f"# Available tools from {server_count} active daemon server(s) ({total_tools} total tools)\n"
         )
 
         for server_id, server_data in servers.items():
             tools = server_data.get("tools", [])
-            print(f"  Server: {server_id} ({len(tools)} tools)")
+            print(f"## Server: {server_id}\n")
+
             for tool in tools:
-                print(f"    • {tool.get('name', 'unknown')}")
+                tool_name = tool.get("name", "unknown")
+                print(f"### {tool_name}\n")
+
                 if tool.get("description"):
-                    print(f"      {tool['description']}")
-            print()
+                    print(f"{tool['description']}\n")
+
+                # Generate and show example
+                input_schema = tool.get("inputSchema", {})
+                example = generate_json_example(input_schema)
+                example_json = json_module.dumps(example)
+
+                print("#### Example\n")
+                print("```bash")
+                print(
+                    f"cllm-mcp call-tool {server_id} {tool_name} '{example_json}'"
+                )
+                print("```\n")
 
 
 def create_parser():
@@ -234,7 +249,7 @@ Examples:
 
 def handle_list_tools(args):
     """Handle list-tools command with daemon detection and config resolution."""
-    # If no server_command specified, try to list available servers from daemon config
+    # If no server_command specified, list all tools from all running daemon servers
     if args.server_command is None:
         socket_path = get_daemon_socket_path(args.socket)
         is_daemon_available = should_use_daemon(
@@ -251,37 +266,7 @@ def handle_list_tools(args):
             )
             sys.exit(1)
 
-        # Try to get configured servers from daemon
-        daemon_config = get_daemon_config(socket_path, verbose=args.verbose)
-        if daemon_config and daemon_config.get("servers"):
-            servers = daemon_config.get("servers", {})
-            server_count = len(servers)
-
-            if args.json:
-                import json as json_module
-
-                print(json_module.dumps(servers, indent=2))
-            else:
-                if server_count == 0:
-                    print("No servers configured")
-                else:
-                    print(
-                        f"Available configured servers from daemon ({server_count} total):\n"
-                    )
-                    for server_name, server_config in servers.items():
-                        print(f"  {server_name}")
-                        if server_config.get("description"):
-                            print(f"    Description: {server_config['description']}")
-                        print(f"    Command: {server_config.get('command', 'unknown')}")
-                        if server_config.get("args"):
-                            print(f"    Args: {' '.join(server_config['args'])}")
-                        status = (
-                            "running" if server_config.get("running") else "available"
-                        )
-                        print(f"    Status: {status}\n")
-            return None
-
-        # Fallback: List all running tools from daemon
+        # List all running tools from all daemon servers
         try:
             result = daemon_list_all_tools(socket_path)
             return _display_all_daemon_tools(result, args.json)
