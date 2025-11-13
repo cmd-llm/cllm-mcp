@@ -49,10 +49,11 @@ from mcp_daemon import daemon_start, daemon_status, daemon_stop
 
 
 def _display_all_daemon_tools(
-    result: Dict[str, Any], json_output: bool = False
+    result: Dict[str, Any], json_output: bool = False, daemon_config: Dict[str, Any] = None
 ) -> None:
     """Display all tools from all daemon servers in markdown format with examples."""
     import json as json_module
+    import hashlib
 
     if json_output:
         print(json_module.dumps(result, indent=2))
@@ -65,13 +66,38 @@ def _display_all_daemon_tools(
             print("No active servers in daemon")
             return
 
+        # Build a map from server ID to server name for configured servers
+        id_to_name = {}
+        if daemon_config and daemon_config.get("servers"):
+            for server_name, server_info in daemon_config.get("servers", {}).items():
+                # Check if server name is directly in the servers list
+                if server_name in servers:
+                    id_to_name[server_name] = server_name
+                else:
+                    # Try to match by computing the command hash
+                    command = server_info.get("command", "")
+                    args = server_info.get("args", [])
+                    if command:
+                        # Reconstruct the full command
+                        full_command = command
+                        if args:
+                            full_command = f"{command} {' '.join(args)}"
+                        # Compute the server ID hash (same as mcp_cli.get_server_id)
+                        server_id = hashlib.md5(full_command.encode()).hexdigest()[:12]
+                        if server_id in servers:
+                            id_to_name[server_id] = server_name
+
         print(
             f"# Available tools from {server_count} active daemon server(s) ({total_tools} total tools)\n"
         )
 
         for server_id, server_data in servers.items():
             tools = server_data.get("tools", [])
-            print(f"## Server: {server_id}\n")
+
+            # Use server name if we have it, otherwise use the ID
+            display_name = id_to_name.get(server_id, server_id)
+
+            print(f"## Server: {display_name}\n")
 
             for tool in tools:
                 tool_name = tool.get("name", "unknown")
@@ -88,7 +114,7 @@ def _display_all_daemon_tools(
                 print("#### Example\n")
                 print("```bash")
                 print(
-                    f"cllm-mcp call-tool {server_id} {tool_name} '{example_json}'"
+                    f"cllm-mcp call-tool {display_name} {tool_name} '{example_json}'"
                 )
                 print("```\n")
 
@@ -269,7 +295,9 @@ def handle_list_tools(args):
         # List all running tools from all daemon servers
         try:
             result = daemon_list_all_tools(socket_path)
-            return _display_all_daemon_tools(result, args.json)
+            # Get daemon config to map server IDs to names
+            daemon_config = get_daemon_config(socket_path, verbose=args.verbose)
+            return _display_all_daemon_tools(result, args.json, daemon_config)
         except Exception as e:
             print(f"Error: {e}", file=sys.stderr)
             sys.exit(1)
