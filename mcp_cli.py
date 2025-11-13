@@ -364,26 +364,27 @@ def cmd_list_tools(args):
     if args.json:
         print(json.dumps(tools, indent=2))
     else:
-        print(f"Available tools from: {args.server_command}\n")
+        # Markdown format
+        print(f"# Available tools from: {args.server_command}\n")
         for tool in tools:
-            print(f"  • {tool['name']}")
+            print(f"## {tool['name']}\n")
             if "description" in tool:
-                print(f"    {tool['description']}\n")
+                print(f"{tool['description']}\n")
             if "inputSchema" in tool:
                 schema = tool["inputSchema"]
                 # Generate and show example
                 example = generate_json_example(schema)
                 # Use server_name if available (from config), otherwise use server_command
                 server_ref = getattr(args, 'server_name', args.server_command)
+                print("### Example\n")
+                print("```bash")
                 if example:
                     example_json = json.dumps(example)
-                    print("    Example:")
-                    print(f"      cllm-mcp call-tool {server_ref} {tool['name']} '{example_json}'")
+                    print(f"cllm-mcp call-tool {server_ref} {tool['name']} '{example_json}'")
                 else:
                     # For tools with no parameters
-                    print("    Example:")
-                    print(f"      cllm-mcp call-tool {server_ref} {tool['name']} '{{}}'")
-            print()
+                    print(f"cllm-mcp call-tool {server_ref} {tool['name']} '{{}}'")
+                print("```\n")
 
 
 def cmd_call_tool(args):
