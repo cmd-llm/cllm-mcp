@@ -1,14 +1,23 @@
-# MCP CLI - Model Context Protocol Command Line Utility
+# cllm-mcp - CLI for Model Context Protocol
 
-A lightweight CLI utility for making MCP (Model Context Protocol) tool calls without requiring an LLM. This reduces token usage by allowing bash scripts to directly invoke MCP tools, instead of loading tool definitions into the LLM's context window.
+A high-performance, zero-dependency Python CLI utility for invoking MCP (Model Context Protocol) tools directly from bash scripts. Designed to reduce LLM token usage by eliminating the need to load tool definitions into the context window, and to accelerate batch operations with persistent daemon mode.
 
-## Problem Statement
+## The Problem
 
-When using MCP servers with LLMs, tool definitions consume significant tokens in the context window. For repetitive or well-defined tasks, this is inefficient. This utility allows:
+When using MCP servers with LLMs, tool definitions consume significant tokens:
+- **Token cost per server**: 2,000-5,000 tokens for full tool definitions and schemas
+- **Repetitive invocation**: Multiple tool calls require constant LLM reasoning overhead
+- **Inefficiency**: Scripted/deterministic tasks still consume tokens for MCP protocol handling
 
-1. **Direct tool invocation** - Call MCP tools from bash scripts without LLM involvement
-2. **Reduced token usage** - Keep tool definitions out of the LLM's context
-3. **Simplified workflows** - LLMs can call bash scripts that handle MCP communication
+## The Solution
+
+**cllm-mcp** enables:
+
+1. **Direct tool invocation** - Call MCP tools from bash without LLM involvement (~50-100 tokens per operation)
+2. **Reduced token usage** - 80-95% reduction in context window consumption
+3. **High performance** - Daemon mode provides 10-60x speedup for batch operations
+4. **Seamless integration** - Works transparently with or without daemon mode
+5. **Zero dependencies** - Uses only Python standard library for maximum portability
 
 ## Architecture
 
@@ -34,53 +43,79 @@ When using MCP servers with LLMs, tool definitions consume significant tokens in
 └─────────────────┘
 ```
 
-## Entry Points & Command Architecture
+## Quick Start
 
-This project uses a unified command architecture (ADR-0003) with backward compatibility for legacy scripts.
+### Unified Command Architecture
 
-### Primary Entry Point (Recommended)
+The modern entry point is `cllm-mcp` - a single command that intelligently handles both direct and daemon modes:
 
 ```bash
-# New unified command via Python entry point
-uv run cllm-mcp list-tools "npx -y @modelcontextprotocol/server-filesystem /tmp"
-uv run cllm-mcp call-tool "npx -y @modelcontextprotocol/server-filesystem /tmp" read_file '{"path": "/tmp/test.txt"}'
+# List tools from an MCP server
+cllm-mcp list-tools "npx -y @modelcontextprotocol/server-filesystem /tmp"
 
-# Or with daemon mode
-uv run cllm-mcp list-tools --use-daemon "npx -y @modelcontextprotocol/server-filesystem /tmp"
-uv run cllm-mcp daemon start  # Start daemon in background
+# Call a tool
+cllm-mcp call-tool "npx -y @modelcontextprotocol/server-filesystem /tmp" \
+  read_file '{"path": "/tmp/test.txt"}'
+
+# Interactive exploration
+cllm-mcp interactive "npx -y @modelcontextprotocol/server-filesystem /tmp"
+
+# Daemon management
+cllm-mcp daemon start      # Start daemon in background
+cllm-mcp daemon status     # Check daemon status
+cllm-mcp daemon stop       # Stop daemon
+
+# Configuration management
+cllm-mcp config list       # List configured servers
+cllm-mcp config validate   # Validate configuration
+cllm-mcp config show       # Display full configuration
 ```
 
-**Module**: `cllm_mcp/main.py` → Entry point: `cllm-mcp` command
+**Implementation**: `cllm_mcp/main.py` (Architecture Decision Record: ADR-0003)
 
-### Legacy Entry Points (Backward Compatible)
+### Smart Daemon Detection
+
+The `cllm-mcp` command automatically:
+1. Detects if daemon is running (1s timeout check)
+2. Uses daemon if available for faster performance
+3. Falls back to direct mode if daemon unavailable (graceful degradation)
+4. Works identically in both modes - no code changes needed
+
+### Legacy Commands (Backward Compatible)
+
+For backward compatibility, the legacy entry points still work:
 
 ```bash
-# Legacy client (works, but consider using main entry point)
+# Legacy direct client
 python mcp_cli.py list-tools "..."
 python mcp_cli.py call-tool "..." tool_name '{...}'
 
-# Legacy daemon (works, but consider using main entry point)
+# Legacy daemon (deprecated)
 python mcp_daemon.py start
 python mcp_daemon.py stop
 python mcp_daemon.py status
 ```
 
-**Note**: Root-level `mcp_cli.py` and `mcp_daemon.py` are kept for backward compatibility but the modern approach is to use the unified `cllm-mcp` command through `cllm_mcp/main.py`.
+**Note**: New projects should use `cllm-mcp` command. Legacy commands are maintained for existing scripts.
 
 ### Module Architecture
 
 ```
-cllm_mcp/
-├── main.py              # Unified command dispatcher (primary entry point)
-├── socket_utils.py      # Shared socket communication utilities
-├── daemon_utils.py      # Daemon detection and configuration
-└── config.py            # Configuration management
+cllm_mcp/                    # Modern package structure
+├── main.py                  # Unified command dispatcher (entry point)
+├── config.py                # Configuration management (ADR-0004)
+├── daemon_utils.py          # Daemon detection & socket path resolution
+└── socket_utils.py          # Shared socket communication utilities
+
+Root-level (legacy, for backward compatibility)
+├── mcp_cli.py               # Direct MCP client implementation
+└── mcp_daemon.py            # Daemon server implementation
 ```
 
-**Root-level files** (for backward compatibility):
-
-- `mcp_cli.py` → Imported by main.py for direct mode implementation
-- `mcp_daemon.py` → Imported by main.py for daemon mode implementation
+**Architecture Decisions**:
+- **ADR-0003**: Unified daemon/client command architecture
+- **ADR-0004**: CLLM-style configuration with hierarchical overrides
+- **ADR-0005**: Auto-initialization of configured servers on daemon startup
 
 ## Components
 
@@ -165,147 +200,244 @@ source .venv/bin/activate
 mcp-cli list-tools "npx -y @modelcontextprotocol/server-filesystem /tmp"
 ```
 
-## Usage
+## Usage Examples
 
-### Method 1: Direct Python Client
+### Method 1: Direct Server Specification
 
-#### List Tools
-
-```bash
-./mcp_cli.py list-tools "npx -y @modelcontextprotocol/server-filesystem /tmp"
-```
-
-#### Call a Tool
-
-```bash
-./mcp_cli.py call-tool "npx -y @modelcontextprotocol/server-filesystem /tmp" \
-    read_file '{"path": "/tmp/test.txt"}'
-```
-
-#### Interactive Mode
-
-```bash
-./mcp_cli.py interactive "npx -y @modelcontextprotocol/server-filesystem /tmp"
-```
-
-### Method 2: Simple Bash Wrappers
+List and call tools by directly specifying the server command:
 
 ```bash
 # List tools
-./mcp-list-tools.sh "npx -y @modelcontextprotocol/server-filesystem /tmp"
+cllm-mcp list-tools "npx -y @modelcontextprotocol/server-filesystem /tmp"
 
 # Call a tool
-./mcp-call-tool.sh "npx -y @modelcontextprotocol/server-filesystem /tmp" \
-    read_file '{"path": "/tmp/test.txt"}'
+cllm-mcp call-tool "npx -y @modelcontextprotocol/server-filesystem /tmp" \
+  read_file '{"path": "/tmp/test.txt"}'
+
+# Interactive exploration
+cllm-mcp interactive "npx -y @modelcontextprotocol/server-filesystem /tmp"
 ```
 
-### Method 3: Configuration-Based Wrapper (Recommended)
+**Best for**: One-off commands, scripting without configuration
 
-1. Configure your servers in `mcp-config.json`:
+### Method 2: Configuration-Based (Recommended)
+
+Configure servers once, reference them by name:
+
+#### 1. Create Configuration
+
+Configuration files are resolved in this order (highest priority wins):
+1. CLI argument: `cllm-mcp --config /path/to/config.json`
+2. Environment variable: `CLLM_MCP_CONFIG=/path/to/config.json`
+3. Current directory: `./mcp-config.json`
+4. Project directory: `./.cllm/mcp-config.json`
+5. Home directory: `~/.cllm/mcp-config.json`
+
+Create `.cllm/mcp-config.json` in your project:
 
 ```json
 {
   "mcpServers": {
     "filesystem": {
       "command": "npx",
-      "args": ["-y", "@modelcontextprotocol/server-filesystem", "/tmp"]
+      "args": ["-y", "@modelcontextprotocol/server-filesystem", "/tmp"],
+      "description": "File operations"
+    },
+    "github": {
+      "command": "npx",
+      "args": ["@modelcontextprotocol/server-github"],
+      "env": {
+        "GITHUB_TOKEN": "your_token_here"
+      },
+      "description": "GitHub API access",
+      "autoStart": true,
+      "optional": false
     }
   }
 }
 ```
 
-2. Use the wrapper:
+#### 2. Use Configured Servers
 
 ```bash
 # List tools from configured server
-./mcp-wrapper.sh filesystem list-tools
+cllm-mcp list-tools filesystem
 
 # Call a tool
-./mcp-wrapper.sh filesystem call-tool read_file '{"path": "/tmp/test.txt"}'
+cllm-mcp call-tool filesystem read_file '{"path": "/tmp/test.txt"}'
 
 # Interactive mode
-./mcp-wrapper.sh filesystem interactive
+cllm-mcp interactive filesystem
+
+# Manage configuration
+cllm-mcp config list          # List configured servers
+cllm-mcp config validate      # Validate configuration
+cllm-mcp config show          # Display full configuration
 ```
+
+**Best for**: Production workflows, batch scripts, team projects
+
+### Method 3: Daemon Mode for Batch Operations
+
+For scripts making multiple tool calls:
+
+```bash
+# Start daemon (auto-initializes configured servers)
+cllm-mcp daemon start
+
+# Daemon automatically manages server connections
+cllm-mcp call-tool filesystem read_file '{"path": "/tmp/file1.txt"}'
+cllm-mcp call-tool filesystem read_file '{"path": "/tmp/file2.txt"}'
+cllm-mcp call-tool filesystem read_file '{"path": "/tmp/file3.txt"}'
+
+# Check daemon status
+cllm-mcp daemon status
+
+# Stop when done
+cllm-mcp daemon stop
+```
+
+**Performance**: 10-60x faster than direct mode for multiple operations
+
+**Best for**: Batch processing, repeated operations, performance-critical scripts
 
 ## Integration with LLMs
 
-The key benefit is that LLMs can now call simple bash scripts instead of managing MCP protocol details:
+LLMs can delegate MCP operations to bash scripts, reducing context window usage by 80-95%:
 
-### Before (High Token Usage)
+### Before (LLM Token Overhead)
 
 ```
 LLM Context:
-- Full MCP protocol knowledge
-- All tool definitions (schemas, parameters)
-- Connection management logic
-≈ 2000-5000 tokens per server
+- Full MCP protocol knowledge (500+ tokens)
+- Tool definitions & schemas (1500-4000 tokens per server)
+- Connection management logic (200+ tokens)
+─────────────────────────────────────
+Total: 2,200-4,700 tokens per server
 ```
 
 ### After (Minimal Token Usage)
 
 ```
 LLM Instructions:
-"To read a file, call: ./mcp-wrapper.sh filesystem call-tool read_file '{\"path\": \"<path>\"}'
-≈ 50-100 tokens per operation
+"To list filesystem tools: cllm-mcp list-tools filesystem
+ To read a file: cllm-mcp call-tool filesystem read_file '{\"path\": \"...\"}'
+ To write a file: cllm-mcp call-tool filesystem write_file '{\"path\": \"...\", \"content\": \"...\"}'
+
+─────────────────────────────────────
+Total: 50-100 tokens for simple instructions
 ```
 
-### Example LLM Prompt
+### Example LLM System Prompt
 
 ```
-You have access to the following bash commands for file operations:
+You have access to the following bash commands for file and GitHub operations:
 
-1. List available filesystem tools:
-   ./mcp-wrapper.sh filesystem list-tools
+## File Operations
+- List available filesystem tools:
+  cllm-mcp list-tools filesystem
 
-2. Read a file:
-   ./mcp-wrapper.sh filesystem call-tool read_file '{"path": "<file_path>"}'
+- Read a file:
+  cllm-mcp call-tool filesystem read_file '{"path": "<file_path>"}'
 
-3. Write to a file:
-   ./mcp-wrapper.sh filesystem call-tool write_file '{"path": "<file_path>", "content": "<content>"}'
+- Write to a file:
+  cllm-mcp call-tool filesystem write_file '{"path": "<file_path>", "content": "<content>"}'
 
-Use these commands to perform file operations as needed.
+## GitHub Operations
+- List available GitHub tools:
+  cllm-mcp list-tools github
+
+- Create an issue:
+  cllm-mcp call-tool github create_issue '{"owner": "...", "repo": "...", "title": "...", "body": "..."}'
+
+When you need to perform file operations or GitHub actions, use these commands.
+The tools will execute immediately and return results in JSON format.
 ```
 
 ## Common MCP Servers
 
+Quick reference for popular MCP servers. Use `cllm-mcp list-tools <server>` to see all available tools.
+
 ### Filesystem Operations
 
 ```bash
-./mcp-wrapper.sh filesystem call-tool read_file '{"path": "/tmp/file.txt"}'
-./mcp-wrapper.sh filesystem call-tool write_file '{"path": "/tmp/file.txt", "content": "Hello"}'
-./mcp-wrapper.sh filesystem call-tool list_directory '{"path": "/tmp"}'
+# Configure in .cllm/mcp-config.json:
+# "filesystem": {
+#   "command": "npx",
+#   "args": ["-y", "@modelcontextprotocol/server-filesystem", "/tmp"]
+# }
+
+# Usage:
+cllm-mcp list-tools filesystem
+cllm-mcp call-tool filesystem read_file '{"path": "/tmp/file.txt"}'
+cllm-mcp call-tool filesystem write_file '{"path": "/tmp/file.txt", "content": "Hello"}'
+cllm-mcp call-tool filesystem list_directory '{"path": "/tmp"}'
 ```
 
 ### GitHub Operations
 
 ```bash
-./mcp-wrapper.sh github call-tool create_issue '{
+# Configure in .cllm/mcp-config.json:
+# "github": {
+#   "command": "npx",
+#   "args": ["@modelcontextprotocol/server-github"],
+#   "env": {"GITHUB_TOKEN": "your_token"}
+# }
+
+# Usage:
+cllm-mcp list-tools github
+cllm-mcp call-tool github create_issue '{
   "owner": "username",
   "repo": "repository",
   "title": "Bug Report",
-  "body": "Description of the bug"
+  "body": "Description"
 }'
 ```
 
-### Web Search (Brave)
+### Time & Date Utilities
 
 ```bash
-./mcp-wrapper.sh brave-search call-tool search '{
-  "query": "MCP protocol documentation"
-}'
+# Configure in .cllm/mcp-config.json:
+# "time": {
+#   "command": "uvx",
+#   "args": ["mcp-server-time"]
+# }
+
+# Usage:
+cllm-mcp list-tools time
+cllm-mcp call-tool time get_current_time '{}'
+```
+
+### Web Search (Multiple Options Available)
+
+```bash
+# Brave Search:
+# "brave-search": {
+#   "command": "npx",
+#   "args": ["@modelcontextprotocol/server-brave-search"],
+#   "env": {"BRAVE_API_KEY": "your_key"}
+# }
+
+# Usage:
+cllm-mcp call-tool brave-search search '{"query": "MCP protocol"}'
 ```
 
 ### Database Operations (SQLite)
 
 ```bash
-./mcp-wrapper.sh sqlite call-tool query '{
-  "sql": "SELECT * FROM users LIMIT 10"
-}'
+# Configure in .cllm/mcp-config.json:
+# "sqlite": {
+#   "command": "npx",
+#   "args": ["@modelcontextprotocol/server-sqlite", "/path/to/db.sqlite"]
+# }
+
+# Usage:
+cllm-mcp call-tool sqlite query '{"sql": "SELECT * FROM users LIMIT 10"}'
 ```
 
 ## Configuration Format
 
-The `mcp-config.json` file defines available MCP servers:
+Configuration uses CLLM-style hierarchy. Server definitions go in `.cllm/mcp-config.json`:
 
 ```json
 {
@@ -313,42 +445,118 @@ The `mcp-config.json` file defines available MCP servers:
     "server_name": {
       "command": "npx",
       "args": ["-y", "@modelcontextprotocol/server-name", "arg1"],
+      "description": "Description of what this server does",
       "env": {
         "API_KEY": "your_api_key"
       },
-      "description": "Description of what this server does"
+      "autoStart": true,
+      "optional": false
     }
   }
 }
 ```
 
-### Fields:
+### Server Configuration Fields
 
-- **command**: Executable to run (usually `npx` for Node.js MCP servers)
-- **args**: Array of command-line arguments
-- **env**: (Optional) Environment variables to set
-- **description**: (Optional) Human-readable description
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `command` | string | Yes | Executable to run (e.g., `npx`, `python`, `uvx`) |
+| `args` | array | Yes | Command-line arguments as array |
+| `description` | string | No | Human-readable server description |
+| `env` | object | No | Environment variables to set (e.g., API keys) |
+| `autoStart` | boolean | No | Auto-start when daemon launches (default: false) |
+| `optional` | boolean | No | Don't fail daemon startup if server fails (default: false) |
+
+### Configuration Resolution (ADR-0004)
+
+Files are searched in this order (highest priority wins):
+
+1. **CLI argument**: `cllm-mcp --config /path/to/config.json`
+2. **Environment variable**: `CLLM_MCP_CONFIG=/path/to/config.json`
+3. **Current directory**: `./mcp-config.json`
+4. **Project directory**: `./.cllm/mcp-config.json`
+5. **Home directory**: `~/.cllm/mcp-config.json`
+
+**Recommended structure**: Use `.cllm/mcp-config.json` in your project root for version control.
+
+### Example: Multi-Server Configuration
+
+```json
+{
+  "mcpServers": {
+    "filesystem": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-filesystem", "/tmp"],
+      "description": "File operations",
+      "autoStart": true
+    },
+    "github": {
+      "command": "npx",
+      "args": ["@modelcontextprotocol/server-github"],
+      "description": "GitHub API access",
+      "env": {
+        "GITHUB_TOKEN": "${GITHUB_TOKEN}"
+      },
+      "autoStart": true,
+      "optional": false
+    },
+    "sqlite": {
+      "command": "npx",
+      "args": ["@modelcontextprotocol/server-sqlite", "/tmp/app.db"],
+      "description": "SQLite database",
+      "autoStart": false,
+      "optional": true
+    }
+  }
+}
+```
 
 ## Advanced Usage
 
 ### Creating Custom Tool Wrappers
 
-You can create specialized bash scripts for specific tasks:
+Build specialized bash scripts on top of cllm-mcp:
 
 ```bash
 #!/bin/bash
-# read-github-issue.sh - Read a GitHub issue
+# github-issue.sh - Helper for GitHub operations
 
-OWNER="$1"
-REPO="$2"
-ISSUE_NUM="$3"
+COMMAND="$1"
 
-./mcp-wrapper.sh github call-tool get_issue "{
-  \"owner\": \"$OWNER\",
-  \"repo\": \"$REPO\",
-  \"issue_number\": $ISSUE_NUM
-}"
+case "$COMMAND" in
+  list)
+    cllm-mcp list-tools github
+    ;;
+  create)
+    OWNER="$2"
+    REPO="$3"
+    TITLE="$4"
+    BODY="$5"
+    cllm-mcp call-tool github create_issue "{
+      \"owner\": \"$OWNER\",
+      \"repo\": \"$REPO\",
+      \"title\": \"$TITLE\",
+      \"body\": \"$BODY\"
+    }"
+    ;;
+  get)
+    OWNER="$2"
+    REPO="$3"
+    ISSUE_NUM="$4"
+    cllm-mcp call-tool github get_issue "{
+      \"owner\": \"$OWNER\",
+      \"repo\": \"$REPO\",
+      \"issue_number\": $ISSUE_NUM
+    }"
+    ;;
+  *)
+    echo "Usage: $0 {list|create|get} [args]"
+    exit 1
+    ;;
+esac
 ```
+
+Usage: `./github-issue.sh create myorg myrepo "Bug report" "Details here"`
 
 ### Error Handling
 
@@ -357,10 +565,12 @@ The CLI returns appropriate exit codes:
 - `0` - Success
 - `1` - Error (with error message to stderr)
 
-Example error handling in bash:
+Example error handling:
 
 ```bash
-if ! output=$(./mcp-wrapper.sh filesystem call-tool read_file '{"path": "/tmp/file.txt"}' 2>&1); then
+#!/bin/bash
+
+if ! output=$(cllm-mcp call-tool filesystem read_file '{"path": "/tmp/file.txt"}' 2>&1); then
     echo "Error reading file: $output" >&2
     exit 1
 fi
@@ -368,239 +578,408 @@ fi
 echo "File content: $output"
 ```
 
-### Chaining Operations
+### Chaining Operations with jq
+
+Combine tools with JSON processing:
 
 ```bash
 #!/bin/bash
-# Example: Read a file and create a GitHub issue with its content
+# Example: List files in directory, read each one, create GitHub issues
 
-FILE_PATH="$1"
-OWNER="$2"
-REPO="$3"
+REPO_OWNER="$1"
+REPO_NAME="$2"
+TARGET_DIR="$3"
 
-# Read file content
-CONTENT=$(./mcp-wrapper.sh filesystem call-tool read_file "{\"path\": \"$FILE_PATH\"}" | jq -r '.content[0].text')
+# Start daemon for batch operations
+cllm-mcp daemon start
 
-# Create issue with file content
-./mcp-wrapper.sh github call-tool create_issue "{
-  \"owner\": \"$OWNER\",
-  \"repo\": \"$REPO\",
-  \"title\": \"File Report: $FILE_PATH\",
-  \"body\": \"$CONTENT\"
-}"
+# List files in directory
+files=$(cllm-mcp call-tool filesystem list_directory "{\"path\": \"$TARGET_DIR\"}" \
+  | jq -r '.contents[].name')
+
+for file in $files; do
+  echo "Processing $file..."
+
+  # Read file content
+  content=$(cllm-mcp call-tool filesystem read_file "{\"path\": \"$TARGET_DIR/$file\"}")
+
+  # Create issue with file content
+  cllm-mcp call-tool github create_issue "{
+    \"owner\": \"$REPO_OWNER\",
+    \"repo\": \"$REPO_NAME\",
+    \"title\": \"File Report: $file\",
+    \"body\": $(echo "$content" | jq -R -s '.')
+  }"
+done
+
+# Stop daemon
+cllm-mcp daemon stop
+```
+
+### Parallel Operations
+
+Process multiple items in parallel:
+
+```bash
+#!/bin/bash
+# Process files concurrently
+
+# Start daemon
+cllm-mcp daemon start
+
+# Process multiple files in background
+for file in /tmp/file1.txt /tmp/file2.txt /tmp/file3.txt; do
+  (
+    cllm-mcp call-tool filesystem read_file "{\"path\": \"$file\"}" > "/tmp/output-$(basename $file)"
+  ) &
+done
+
+# Wait for all background jobs
+wait
+
+# Stop daemon
+cllm-mcp daemon stop
 ```
 
 ## Daemon Mode (Performance Optimization)
 
-For scripts that make multiple MCP tool calls, daemon mode eliminates the overhead of starting a new server process for each call. This provides **10-60x performance improvement** for repeated operations.
+For scripts making multiple MCP tool calls, daemon mode provides **10-60x performance improvement** by keeping servers running and reusing connections.
 
 ### How It Works
 
-The daemon keeps MCP servers running in the background and communicates via Unix domain sockets:
+The daemon maintains persistent MCP server processes and communicates via Unix domain sockets:
 
 ```
-┌─────────────────┐
-│   Bash Script   │
-└────────┬────────┘
-         │ Unix Socket (fast IPC)
-         ▼
-┌─────────────────┐
-│   MCP Daemon    │ ◄─── Manages server pool
-└────────┬────────┘
-         │ Reuses existing connections
-         ▼
-┌─────────────────┐
-│   MCP Servers   │ (filesystem, github, etc.)
-└─────────────────┘
+┌──────────────────────┐
+│   Your Bash Script   │
+└──────────┬───────────┘
+           │ TCP-like Unix Socket (fast IPC)
+           │ Auto-detected by cllm-mcp
+           ▼
+┌──────────────────────┐
+│   MCP Daemon         │ ◄─── Manages server pool
+│   (auto-detects)     │      Reuses connections
+└──────────┬───────────┘
+           │
+        ┌──┴──┬──────┬────────┐
+        ▼     ▼      ▼        ▼
+    [filesystem] [github] [sqlite] [time]
+    (persistent MCP servers)
 ```
+
+### Automatic Daemon Detection
+
+The `cllm-mcp` command automatically detects and uses daemon when available:
+
+```bash
+# Step 1: Start daemon (usually once at script start)
+cllm-mcp daemon start
+
+# Step 2: Any subsequent cllm-mcp commands automatically use daemon
+cllm-mcp call-tool filesystem read_file '{"path": "/tmp/file1.txt"}'
+cllm-mcp call-tool filesystem read_file '{"path": "/tmp/file2.txt"}'
+# ^ These run ~10-60x faster because daemon is reusing connections
+
+# Step 3: Stop when done
+cllm-mcp daemon stop
+```
+
+**No special flags needed!** The magic happens automatically.
 
 ### Performance Comparison
 
-| Method     | First Call | Subsequent Calls | Best For       |
-| ---------- | ---------- | ---------------- | -------------- |
-| **Direct** | ~200ms     | ~200ms           | Single calls   |
-| **Daemon** | ~200ms     | ~5-20ms          | Multiple calls |
+| Scenario | Direct Mode | Daemon Mode | Speedup |
+|----------|-------------|-------------|---------|
+| Single call | ~200ms | ~200ms | 1x |
+| 10 calls | ~2000ms | ~100-200ms | 10-20x |
+| 100 calls | ~20000ms | ~500-1000ms | 20-40x |
 
-### Usage
-
-#### 1. Start the Daemon
+### Detailed Daemon Management
 
 ```bash
-# Start daemon in background
-./mcp-daemon start
+# Start daemon (initializes configured servers if autoStart: true)
+cllm-mcp daemon start
+
+# Start in foreground (for debugging)
+cllm-mcp daemon start --foreground
 
 # Check daemon status
-./mcp-daemon status
+cllm-mcp daemon status
+
+# Check status with JSON output
+cllm-mcp daemon status --json
+
+# Restart daemon
+cllm-mcp daemon restart
+
+# Stop daemon
+cllm-mcp daemon stop
 ```
 
-#### 2. Use Daemon Mode
+### Auto-Initialization with ADR-0005
 
-**With Direct CLI:**
+When daemon starts, it automatically initializes servers marked with `autoStart: true`:
 
-```bash
-# Add --use-daemon flag to any command
-./mcp_cli.py call-tool --use-daemon \
-  "npx -y @modelcontextprotocol/server-filesystem /tmp" \
-  read_file '{"path": "/tmp/test.txt"}'
+```json
+{
+  "mcpServers": {
+    "filesystem": {
+      "command": "npx",
+      "args": ["@modelcontextprotocol/server-filesystem", "/tmp"],
+      "autoStart": true,          // ← Starts automatically
+      "optional": false           // ← Daemon startup fails if this fails
+    },
+    "github": {
+      "command": "npx",
+      "args": ["@modelcontextprotocol/server-github"],
+      "autoStart": false,         // ← Manual start only
+      "optional": true            // ← Won't fail daemon startup if fails
+    }
+  }
+}
 ```
 
-**With Config Wrapper:**
-
-```bash
-# Enable daemon mode via environment variable
-export MCP_USE_DAEMON=1
-
-# All subsequent calls will use daemon
-./mcp-wrapper.sh filesystem call-tool read_file '{"path": "/tmp/file1.txt"}'
-./mcp-wrapper.sh filesystem call-tool read_file '{"path": "/tmp/file2.txt"}'
-./mcp-wrapper.sh filesystem call-tool read_file '{"path": "/tmp/file3.txt"}'
-```
-
-#### 3. Stop the Daemon
-
-```bash
-./mcp-daemon stop
-```
-
-### Example: Batch Operations
+### Example: Batch File Processing
 
 ```bash
 #!/bin/bash
-# Process multiple files efficiently with daemon mode
+# Process 100 files efficiently with daemon
 
-# Start daemon
-./mcp-daemon start
+# Start daemon once
+cllm-mcp daemon start
 
-# Enable daemon mode
-export MCP_USE_DAEMON=1
-
-# Process files (fast - no server startup overhead)
-for file in /tmp/*.txt; do
-    echo "Processing $file..."
-    ./mcp-wrapper.sh filesystem call-tool read_file "{\"path\": \"$file\"}"
+# Process files (automatic daemon detection, fast IPC)
+for i in {1..100}; do
+    echo "Processing file $i..."
+    cllm-mcp call-tool filesystem read_file "{\"path\": \"/tmp/file$i.txt\"}"
 done
 
-# Stop daemon when done
-./mcp-daemon stop
+# Clean up
+cllm-mcp daemon stop
 ```
 
-### Daemon Commands
+Performance: ~100-200ms total vs ~20000ms without daemon
+
+### Advanced: Custom Socket Path
+
+Use non-default socket location:
 
 ```bash
-# Start daemon
-./mcp-daemon start
+# Start daemon with custom socket
+cllm-mcp daemon start --socket /var/run/my-mcp.sock
 
-# Start in foreground (for debugging)
-./mcp-daemon start --foreground
-
-# Check status
-./mcp-daemon status
-
-# Check status (JSON output)
-./mcp-daemon status --json
-
-# Stop daemon
-./mcp-daemon stop
+# Commands automatically use custom socket
+cllm-mcp call-tool filesystem read_file '{"path": "/tmp/test.txt"}'
 ```
 
 ### When to Use Daemon Mode
 
 ✅ **Use Daemon Mode When:**
-
-- Making multiple tool calls in a script
-- Running repeated operations (batch processing)
+- Making multiple MCP tool calls (3+)
+- Batch processing files or data
 - Performance is critical
-- You can manage daemon lifecycle (start/stop)
+- Running inside a container or service
+- Script can manage daemon lifecycle
 
 ❌ **Skip Daemon Mode When:**
+- Single one-off tool call
+- Running in extremely restricted environments
+- Cannot manage daemon lifecycle (e.g., serverless functions)
 
-- Making a single tool call
-- Running one-off commands
-- Can't reliably stop the daemon afterwards
-- Running in restricted environments (no Unix sockets)
-
-### Troubleshooting
+### Troubleshooting Daemon
 
 **Daemon won't start:**
 
 ```bash
-# Check if daemon is already running
-./mcp-daemon status
+# Check if already running
+cllm-mcp daemon status
 
-# If stale socket exists, clean it up
-rm /tmp/mcp-daemon.sock
-./mcp-daemon start
+# Clean up stale socket and retry
+rm -f /tmp/mcp-daemon.sock
+cllm-mcp daemon start
 ```
 
-**"Daemon not running" error:**
+**Command slow despite daemon:**
 
 ```bash
-# Make sure daemon is started first
-./mcp-daemon start
+# Verify daemon is running
+cllm-mcp daemon status
 
-# Verify it's running
-./mcp-daemon status
+# Check daemon logs
+cllm-mcp daemon status --verbose
 ```
 
-**Custom socket path:**
+**Port/Socket conflicts:**
 
 ```bash
 # Use custom socket location
-./mcp-daemon --socket /path/to/custom.sock start
-./mcp_cli.py call-tool --use-daemon --daemon-socket /path/to/custom.sock ...
+cllm-mcp daemon start --socket /tmp/my-daemon.sock
+
+# All subsequent commands will use it automatically
 ```
 
 ## Benefits
 
-1. **Token Efficiency**: Reduces context window usage by 80-95% for tool definitions
-2. **Simplicity**: LLMs only need to know bash command syntax
-3. **Flexibility**: Easy to add new MCP servers without updating LLM prompts
-4. **Reusability**: Bash scripts can be shared and versioned
-5. **Debugging**: Easier to test and debug tool calls independently
-6. **Performance**: Direct invocation is faster than going through LLM reasoning
+1. **Token Efficiency**: 80-95% reduction in context window usage by eliminating tool definitions
+2. **Performance**: 10-60x speedup with daemon mode for batch operations
+3. **Simplicity**: LLMs only need simple bash command syntax
+4. **Flexibility**: Add new servers to configuration without updating LLM instructions
+5. **Reusability**: Bash scripts are version-controllable and shareable
+6. **Debugging**: Easier to test and debug tool invocations independently
+7. **Zero Dependencies**: Uses only Python stdlib for maximum portability
+8. **Seamless Integration**: Works transparently with or without daemon mode
+9. **Standard Config Format**: CLLM-style configuration (`.cllm/mcp-config.json`)
 
-## Limitations
+## Limitations & Considerations
 
-1. **No Dynamic Discovery**: LLM must know which tools are available (but can call `list-tools`)
-2. **Error Handling**: LLM needs to handle JSON parsing errors from tool responses
-3. **State Management**: Each call starts a new server instance (use daemon mode for persistent connections)
-4. **Platform**: Requires Python and bash (Unix-like systems)
-5. **Daemon Mode**: Only works on Unix-like systems with Unix domain socket support
+1. **No Dynamic Discovery**: Tools must be pre-configured (but LLM can call `list-tools`)
+2. **JSON Parsing**: LLM must handle JSON responses (use `jq` for parsing)
+3. **Direct Mode Overhead**: Each call spawns new server process (~200ms)
+4. **Platform Dependency**: Requires Python 3.7+ and bash (Unix-like systems)
+5. **Socket Files**: Daemon mode requires Unix socket support (not Windows WSL1)
+6. **Manual Server Start**: Daemon doesn't auto-reconnect if server crashes (use health monitoring)
+
+## Architecture Decision Records
+
+All major design decisions are documented in `docs/decisions/`:
+
+- **ADR-0001**: Adopted Vibe format for architecture decisions
+- **ADR-0002**: Adopted `uv` package manager for dependency management
+- **ADR-0003**: Unified daemon/client command architecture with smart detection
+- **ADR-0004**: CLLM-style configuration hierarchy (`.cllm/mcp-config.json`)
+- **ADR-0005**: Automatic daemon initialization of configured servers
+- **ADR-0006**: Tool invocation examples in `list-tools` output
+
+See `docs/decisions/` directory for full details and rationale.
 
 ## Future Enhancements
 
-- [x] Persistent server connections (daemon mode) ✅
-- [ ] Caching of tool definitions
-- [ ] Automatic retry logic
+- [x] **Persistent server connections** (daemon mode) ✅ ADR-0005
+- [x] **Unified command architecture** ✅ ADR-0003
+- [x] **CLLM configuration** ✅ ADR-0004
+- [x] **Auto-server initialization** ✅ ADR-0005
+- [ ] Tool invocation examples in list output (ADR-0006 - proposed)
 - [ ] Result formatting options (JSON, text, table)
+- [ ] Caching of tool definitions
 - [ ] Batch tool calling
-- [ ] WebSocket transport support
-- [ ] Tool call logging and analytics
-- [ ] Integration with popular AI frameworks
+- [ ] Retry and timeout policies
+- [ ] Tool call logging and metrics
 
 ## Examples
 
-See the `examples/` directory for complete working examples:
+The `examples/` directory contains working scripts demonstrating cllm-mcp:
 
-- File operations workflow
-- GitHub automation
-- Database queries
-- Web scraping
+- **quick-datetime-test.sh** - Simple time server test
+- **file-operations.sh** - Read/write file examples
+- **daemon-batch-processing.sh** - Efficient batch file processing with daemon
+- **comprehensive-demo.sh** - Full feature walkthrough
+- **README.md** - Detailed examples guide
+
+Run examples with:
+```bash
+cd examples
+./quick-datetime-test.sh
+./daemon-batch-processing.sh
+```
+
+## Project Structure
+
+```
+.
+├── cllm_mcp/                    # Modern package (entry point)
+├── mcp_cli.py                   # Legacy direct client
+├── mcp_daemon.py                # Legacy daemon
+├── docs/
+│   ├── decisions/               # Architecture Decision Records
+│   └── testing/                 # Test documentation
+├── examples/                    # Runnable example scripts
+├── tests/                       # Comprehensive test suite
+├── .cllm/mcp-config.json        # Project configuration
+├── pyproject.toml               # Project metadata
+├── README.md                    # This file
+└── LICENSE                      # MIT License
+```
+
+## Testing
+
+Run tests with:
+
+```bash
+# All tests
+uv run pytest
+
+# Specific markers
+uv run pytest -m unit               # Fast unit tests
+uv run pytest -m integration        # Integration tests
+uv run pytest -m daemon             # Daemon tests
+
+# With coverage
+uv run pytest --cov=cllm_mcp
+```
+
+**Test Coverage**: 132+ tests across unit and integration suites
 
 ## Contributing
 
-Contributions are welcome! Please feel free to submit issues or pull requests.
+Contributions are welcome! Please:
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-thing`)
+3. Add tests for your changes
+4. Ensure all tests pass (`uv run pytest`)
+5. Submit a pull request
+
+See CONTRIBUTING.md for detailed guidelines.
 
 ## License
 
 MIT License - see LICENSE file for details
 
-## References
+## Quick Reference
 
-- [Model Context Protocol Specification](https://modelcontextprotocol.io)
-- [MCP Servers Repository](https://github.com/modelcontextprotocol/servers)
-- [Claude Desktop MCP Integration](https://docs.anthropic.com/claude/docs/model-context-protocol)
+### Common Commands
+
+```bash
+# Start daemon
+cllm-mcp daemon start
+
+# List tools
+cllm-mcp list-tools filesystem
+
+# Call a tool
+cllm-mcp call-tool filesystem read_file '{"path": "/tmp/file.txt"}'
+
+# Interactive mode
+cllm-mcp interactive filesystem
+
+# Configuration
+cllm-mcp config list
+cllm-mcp config validate
+
+# Daemon control
+cllm-mcp daemon status
+cllm-mcp daemon stop
+```
+
+### Configuration Locations
+
+1. `~/.cllm/mcp-config.json` (global)
+2. `./.cllm/mcp-config.json` (project)
+3. `./mcp-config.json` (legacy)
+4. `CLLM_MCP_CONFIG` environment variable
+5. `--config` CLI argument
+
+## Resources
+
+- **Model Context Protocol**: https://modelcontextprotocol.io
+- **MCP Servers**: https://github.com/modelcontextprotocol/servers
+- **Claude Integration**: https://docs.anthropic.com/claude/docs/model-context-protocol
+- **Vibe ADR Format**: https://github.com/toucanmeister/vibe-adr
 
 ---
 
-**Generated with [Claude Code](https://claude.ai/code)**
+**Project**: cllm-mcp v1.0.0
+**Status**: Actively developed
+**Last Updated**: November 2025
+
+Generated with [Claude Code](https://claude.com/claude-code)
