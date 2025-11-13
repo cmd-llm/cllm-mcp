@@ -21,11 +21,11 @@ That's it! All functionality is available through `cllm-mcp`.
 
 Starting with **v2.0.0**, the legacy Python script entry points have been removed:
 
-| What | Before (v1.x) | After (v2.0+) |
-|------|---------------|---------------|
-| Direct script | `python mcp_cli.py` | ❌ Removed |
-| Daemon script | `python mcp_daemon.py` | ❌ Removed |
-| Modern command | `cllm-mcp` | ✅ Still works |
+| What           | Before (v1.x)          | After (v2.0+)  |
+| -------------- | ---------------------- | -------------- |
+| Direct script  | `python mcp_cli.py`    | ❌ Removed     |
+| Daemon script  | `python mcp_daemon.py` | ❌ Removed     |
+| Modern command | `cllm-mcp`             | ✅ Still works |
 
 **Good news**: The `cllm-mcp` command has all the same functionality!
 
@@ -42,6 +42,7 @@ Starting with **v2.0.0**, the legacy Python script entry points have been remove
 ### Individual Developers
 
 #### Before (v1.x)
+
 ```bash
 # List available tools
 python mcp_cli.py list-tools filesystem
@@ -60,6 +61,7 @@ python mcp_daemon.py daemon stop
 ```
 
 #### After (v2.0+)
+
 ```bash
 # Install (one time)
 pip install --upgrade cllm-mcp
@@ -83,6 +85,7 @@ cllm-mcp daemon stop
 #### Update Aliases
 
 If you have shell aliases:
+
 ```bash
 # Remove or update these lines from ~/.bashrc or ~/.zshrc
 
@@ -97,6 +100,7 @@ alias mcp-daemon="cllm-mcp daemon"
 ```
 
 Then reload your shell:
+
 ```bash
 source ~/.bashrc  # or ~/.zshrc
 ```
@@ -108,6 +112,7 @@ source ~/.bashrc  # or ~/.zshrc
 If your project calls MCP commands:
 
 **Before** (docs/examples/run-mcp.sh):
+
 ```bash
 #!/bin/bash
 set -e
@@ -117,6 +122,7 @@ python mcp_daemon.py daemon start
 ```
 
 **After**:
+
 ```bash
 #!/bin/bash
 set -e
@@ -131,13 +137,17 @@ cllm-mcp daemon start
 #### Update Documentation Examples
 
 Replace all documentation examples:
-```markdown
+
+````markdown
 <!-- Before -->
+
 ```bash
 python mcp_cli.py list-tools filesystem
 ```
+````
 
 <!-- After -->
+
 ```bash
 cllm-mcp list-tools filesystem
 ```
@@ -145,12 +155,14 @@ cllm-mcp list-tools filesystem
 #### Update CI/CD Workflows
 
 **Before** (.github/workflows/test.yml):
+
 ```yaml
 - run: python mcp_cli.py list-tools filesystem
 - run: python mcp_daemon.py daemon start
 ```
 
 **After**:
+
 ```yaml
 - run: pip install cllm-mcp
 - run: cllm-mcp list-tools filesystem
@@ -158,6 +170,7 @@ cllm-mcp list-tools filesystem
 ```
 
 Or if you're testing the package itself:
+
 ```yaml
 - run: pip install -e .
 - run: cllm-mcp list-tools filesystem
@@ -167,6 +180,7 @@ Or if you're testing the package itself:
 ### Docker/Container Users
 
 #### Before (Dockerfile)
+
 ```dockerfile
 FROM python:3.12
 WORKDIR /app
@@ -176,6 +190,7 @@ CMD ["python", "mcp_daemon.py", "daemon", "start"]
 ```
 
 #### After (Dockerfile)
+
 ```dockerfile
 FROM python:3.12
 WORKDIR /app
@@ -184,6 +199,7 @@ CMD ["cllm-mcp", "daemon", "start"]
 ```
 
 Or if building from source:
+
 ```dockerfile
 FROM python:3.12
 WORKDIR /app
@@ -195,6 +211,7 @@ CMD ["cllm-mcp", "daemon", "start"]
 #### Docker Compose
 
 **Before** (docker-compose.yml):
+
 ```yaml
 services:
   mcp-daemon:
@@ -205,18 +222,20 @@ services:
 ```
 
 **After**:
+
 ```yaml
 services:
   mcp-daemon:
     build: .
     command: cllm-mcp daemon start
     volumes:
-      - ~/.cllm:/root/.cllm  # Use CLLM standard config location
+      - ~/.cllm:/root/.cllm # Use CLLM standard config location
 ```
 
 ### Development Setup
 
 #### Before (local development)
+
 ```bash
 # Clone repo
 git clone https://github.com/o3-cloud/cllm-mcp.git
@@ -230,6 +249,7 @@ python mcp_cli.py list-tools filesystem
 ```
 
 #### After (local development)
+
 ```bash
 # Clone repo
 git clone https://github.com/o3-cloud/cllm-mcp.git
@@ -250,6 +270,7 @@ cllm-mcp list-tools filesystem
 Your configuration files don't need to change! The CLLM configuration system (ADR-0004) is fully backward compatible:
 
 **Your existing configs in these locations will still work**:
+
 ```
 ~/.config/cllm-mcp/config.json      ← Still works (old path)
 ~/.cllm/mcp-config.json             ← Recommended (CLLM standard)
@@ -264,11 +285,13 @@ Your configuration files don't need to change! The CLLM configuration system (AD
 ### "Command not found: cllm-mcp"
 
 **Solution**: Install the package:
+
 ```bash
 pip install --upgrade cllm-mcp
 ```
 
 Verify installation:
+
 ```bash
 cllm-mcp --version
 ```
@@ -276,6 +299,7 @@ cllm-mcp --version
 ### "ImportError: Cannot import mcp_cli"
 
 **Solution**: You're trying to import the legacy module directly. Use the command instead:
+
 ```bash
 # Don't do this:
 python -c "from mcp_cli import ..."
@@ -287,6 +311,7 @@ cllm-mcp [command]
 ### Old scripts still in my project
 
 **Solution**: Update all references to use `cllm-mcp`:
+
 ```bash
 # Find all old references
 grep -r "mcp_cli.py" .
@@ -299,6 +324,7 @@ grep -r "mcp_daemon.py" .
 ### Configuration not found
 
 **Solution**: Verify config location using debug mode:
+
 ```bash
 cllm-mcp --verbose list-tools filesystem
 # This will show which config file was used
@@ -309,6 +335,7 @@ See [ADR-0004: Configuration Documentation](docs/decisions/0004-standardize-conf
 ### Daemon won't start
 
 **Solution**: Check the logs:
+
 ```bash
 # Start with verbose output
 cllm-mcp daemon start --verbose
@@ -320,15 +347,19 @@ cllm-mcp daemon status
 ## FAQ
 
 ### Q: Do I need to update my configuration files?
+
 **A**: No! Configuration is fully backward compatible. See "Configuration: No Changes Required" section above.
 
 ### Q: What if I'm still on v1.x?
+
 **A**: Legacy scripts still work, but with deprecation warnings. You can upgrade at your own pace. We recommend upgrading before v2.0 to avoid any issues.
 
 ### Q: Can I have a wrapper script for backward compatibility?
+
 **A**: Sure! Create a simple wrapper:
 
 **mcp_cli.py** (wrapper):
+
 ```python
 #!/usr/bin/env python
 """Wrapper for backward compatibility during migration"""
@@ -340,6 +371,7 @@ sys.exit(subprocess.call(["cllm-mcp"] + sys.argv[1:]))
 ```
 
 **mcp_daemon.py** (wrapper):
+
 ```python
 #!/usr/bin/env python
 """Wrapper for backward compatibility during migration"""
@@ -351,25 +383,33 @@ sys.exit(subprocess.call(["cllm-mcp", "daemon"] + sys.argv[1:]))
 ```
 
 ### Q: What if I have a complex setup with the old scripts?
+
 **A**: [Create an issue](https://github.com/o3-cloud/cllm-mcp/issues) with details, and we'll help you migrate.
 
 ### Q: Is the daemon auto-initialization still available?
+
 **A**: Yes! Daemon auto-initialization (ADR-0005) works with the modern command:
+
 ```bash
 cllm-mcp daemon start  # Servers auto-initialize from config
 ```
 
 ### Q: Do I need to change my CI/CD configuration?
+
 **A**: Yes, update your workflows to use `cllm-mcp` instead of the Python scripts. See examples above.
 
 ### Q: How long will the transition period last?
+
 **A**:
+
 - **v1.x**: Legacy scripts work with deprecation warnings
 - **v2.0+**: Legacy scripts removed
 - **Recommended**: Migrate before v2.0 release
 
 ### Q: What if I find a bug while migrating?
+
 **A**: [Report it](https://github.com/o3-cloud/cllm-mcp/issues) with:
+
 - Your current v1.x or v2.0+ version
 - The command you're trying to run
 - The error message
@@ -384,12 +424,12 @@ cllm-mcp daemon start  # Servers auto-initialize from config
 
 ## Timeline
 
-| Version | Status | Legacy Support | Recommendation |
-|---------|--------|-----------------|-----------------|
-| v1.0-1.1 | Current | ✅ Works | Use freely, both ways work |
-| v1.2+ | Deprecated | ⚠️ Warnings | Update to modern command |
-| v2.0+ | Latest | ❌ Removed | Must use modern command |
-| v3.0+ | Future | ❌ Removed | Modern command only |
+| Version  | Status     | Legacy Support | Recommendation             |
+| -------- | ---------- | -------------- | -------------------------- |
+| v1.0-1.1 | Current    | ✅ Works       | Use freely, both ways work |
+| v1.2+    | Deprecated | ⚠️ Warnings    | Update to modern command   |
+| v2.0+    | Latest     | ❌ Removed     | Must use modern command    |
+| v3.0+    | Future     | ❌ Removed     | Modern command only        |
 
 ---
 

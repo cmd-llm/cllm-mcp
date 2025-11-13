@@ -18,10 +18,16 @@ Configuration follows CLLM-style precedence (ADR-0004):
 """
 
 import argparse
-import os
 import sys
 from typing import Any, Dict
 
+from .client import (
+    cmd_call_tool,
+    cmd_interactive,
+    cmd_list_tools,
+    daemon_list_all_tools,
+    generate_json_example,
+)
 from .config import (
     ConfigError,
     cmd_config_list,
@@ -33,24 +39,19 @@ from .config import (
     resolve_server_ref,
     validate_config,
 )
+from .daemon import daemon_start, daemon_status, daemon_stop
 from .daemon_utils import get_daemon_socket_path, should_use_daemon
 from .socket_utils import get_daemon_config
-from .client import (
-    cmd_call_tool,
-    cmd_interactive,
-    cmd_list_tools,
-    daemon_list_all_tools,
-    generate_json_example,
-)
-from .daemon import daemon_start, daemon_status, daemon_stop
 
 
 def _display_all_daemon_tools(
-    result: Dict[str, Any], json_output: bool = False, daemon_config: Dict[str, Any] = None
+    result: Dict[str, Any],
+    json_output: bool = False,
+    daemon_config: Dict[str, Any] = None,
 ) -> None:
     """Display all tools from all daemon servers in markdown format with examples."""
-    import json as json_module
     import hashlib
+    import json as json_module
 
     if json_output:
         print(json_module.dumps(result, indent=2))
@@ -110,9 +111,7 @@ def _display_all_daemon_tools(
 
                 print("#### Example\n")
                 print("```bash")
-                print(
-                    f"cllm-mcp call-tool {display_name} {tool_name} '{example_json}'"
-                )
+                print(f"cllm-mcp call-tool {display_name} {tool_name} '{example_json}'")
                 print("```\n")
 
 
@@ -341,7 +340,9 @@ def handle_list_tools(args):
 
     # Set the resolved command and preserve the server name
     args.server_command = resolved_command
-    args.server_name = server_name or args.server_command  # Use name if available, otherwise use command
+    args.server_name = (
+        server_name or args.server_command
+    )  # Use name if available, otherwise use command
 
     # Set args for the handler
     args.use_daemon = use_daemon

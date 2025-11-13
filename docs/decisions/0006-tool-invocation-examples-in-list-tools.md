@@ -76,6 +76,7 @@ $ cllm-mcp call-tool filesystem read-file --path /path/to/file
 ### Tools Already Contain Parameter Information
 
 From ADR-0004, we have configuration system that includes tool schemas with:
+
 - Parameter names
 - Parameter types
 - Parameter descriptions
@@ -143,6 +144,7 @@ $ cllm-mcp list-tools filesystem
 ### Placeholder Value Format
 
 For each parameter in the schema, use a placeholder representing the data type:
+
 - Strings: `<string>`
 - Numbers: `<number>`
 - Integers: `<integer>`
@@ -153,6 +155,7 @@ For each parameter in the schema, use a placeholder representing the data type:
 ### Example Generation Examples
 
 **Simple string parameter:**
+
 ```json
 {
   "path": "<string>"
@@ -160,6 +163,7 @@ For each parameter in the schema, use a placeholder representing the data type:
 ```
 
 **Multiple parameters:**
+
 ```json
 {
   "path": "<string>",
@@ -169,6 +173,7 @@ For each parameter in the schema, use a placeholder representing the data type:
 ```
 
 **Complex nested structure:**
+
 ```json
 {
   "query": "<string>",
@@ -214,6 +219,7 @@ For each parameter in the schema, use a placeholder representing the data type:
 ## Alternatives Considered
 
 ### 1. Keep Current Schema-Only Output
+
 **Pros**: Simple, low maintenance, no duplication
 **Cons**: High friction for users, requires documentation lookup, users make mistakes
 
@@ -512,6 +518,7 @@ Available tools from: uvx mcp-server-time
 ```
 
 Users can directly copy-paste the example and replace the type placeholders:
+
 ```bash
 cllm-mcp call-tool uvx mcp-server-time get_current_time '{"timezone": "America/New_York"}'
 cllm-mcp call-tool uvx mcp-server-time convert_time '{"source_timezone": "America/New_York", "time": "14:30", "target_timezone": "Asia/Tokyo"}'
@@ -558,22 +565,23 @@ This retrospective compares the original ADR specification with the actual imple
 
 #### ✅ Fully Implemented Requirements
 
-| Requirement | Spec | Implementation | Status |
-|-------------|------|----------------|--------|
-| Auto-generate examples from schema | ✅ | `generate_json_example()` extracts properties | ✅ |
-| Type-based placeholders | ✅ | `<string>`, `<number>`, etc. | ✅ |
-| Support all JSON types | ✅ | string, number, integer, boolean, array, object | ✅ |
-| Nested object support | ✅ | Recursive placeholder generation | ✅ |
-| Array support | ✅ | Arrays with type-specific items | ✅ |
-| Comprehensive tests | ✅ | 23 unit tests, all passing | ✅ |
-| Full command examples | ✅ | Ready-to-copy `cllm-mcp call-tool` commands | ✅ |
-| No manual configuration | ✅ | Pure auto-generation | ✅ |
+| Requirement                        | Spec | Implementation                                  | Status |
+| ---------------------------------- | ---- | ----------------------------------------------- | ------ |
+| Auto-generate examples from schema | ✅   | `generate_json_example()` extracts properties   | ✅     |
+| Type-based placeholders            | ✅   | `<string>`, `<number>`, etc.                    | ✅     |
+| Support all JSON types             | ✅   | string, number, integer, boolean, array, object | ✅     |
+| Nested object support              | ✅   | Recursive placeholder generation                | ✅     |
+| Array support                      | ✅   | Arrays with type-specific items                 | ✅     |
+| Comprehensive tests                | ✅   | 23 unit tests, all passing                      | ✅     |
+| Full command examples              | ✅   | Ready-to-copy `cllm-mcp call-tool` commands     | ✅     |
+| No manual configuration            | ✅   | Pure auto-generation                            | ✅     |
 
 #### ⚠️ Intentional Deviations from Spec
 
 **1. Output Format: Plain Text → Markdown**
 
 - **Original Spec (lines 16-47)**:
+
   ```
   Available tools from: filesystem
 
@@ -586,7 +594,8 @@ This retrospective compares the original ADR specification with the actual imple
   ```
 
 - **Actual Implementation** (commit b1484f6):
-  ```markdown
+
+  ````markdown
   # Available tools from: filesystem
 
   ## read-file
@@ -598,6 +607,10 @@ This retrospective compares the original ADR specification with the actual imple
   ```bash
   cllm-mcp call-tool ...
   ```
+  ````
+
+  ```
+
   ```
 
 - **Rationale**: Markdown provides better structure, heading hierarchy, improved readability, and compatibility with documentation tools
@@ -628,18 +641,20 @@ This retrospective compares the original ADR specification with the actual imple
 
 #### ❌ Optional Features Not Implemented
 
-| Feature | Spec Status | Implementation | Reason |
-|---------|------------|-----------------|--------|
+| Feature              | Spec Status     | Implementation  | Reason                            |
+| -------------------- | --------------- | --------------- | --------------------------------- |
 | `--no-examples` flag | Optional (§366) | Not implemented | Workaround available via `--json` |
 
 ### Implementation Quality
 
 **Code Organization**:
+
 - `generate_placeholder(prop_info)` - Single-property placeholder generation
 - `generate_json_example(schema)` - Full schema → example object conversion
 - `cmd_list_tools(args)` - Display integration with markdown formatting
 
 **Test Coverage**: 23 unit tests organized in 2 test classes
+
 ```
 TestGeneratePlaceholder:
   ✅ test_placeholder_string_type
@@ -673,13 +688,13 @@ TestGenerateJsonExample:
 
 ### Implementation Timeline
 
-| Date | Commit | Change | Notes |
-|------|--------|--------|-------|
-| 2025-11-12 | 6a536a3 | Initial implementation | Core functionality with plain text output |
-| 2025-11-12 | b1484f6 | Markdown format | Better readability, structure |
-| 2025-11-12 | 3219d7c | Use configured server names | Enhanced user experience |
-| 2025-11-12 | 022a8d8 | Support all daemon tools | Feature completeness |
-| 2025-11-13 | bd1b955 | Polish server name handling | Final refinements |
+| Date       | Commit  | Change                      | Notes                                     |
+| ---------- | ------- | --------------------------- | ----------------------------------------- |
+| 2025-11-12 | 6a536a3 | Initial implementation      | Core functionality with plain text output |
+| 2025-11-12 | b1484f6 | Markdown format             | Better readability, structure             |
+| 2025-11-12 | 3219d7c | Use configured server names | Enhanced user experience                  |
+| 2025-11-12 | 022a8d8 | Support all daemon tools    | Feature completeness                      |
+| 2025-11-13 | bd1b955 | Polish server name handling | Final refinements                         |
 
 ### Known Limitations & Next Steps
 
@@ -704,12 +719,12 @@ TestGenerateJsonExample:
 
 #### Recommended Next Steps
 
-| Priority | Action | Rationale | Effort |
-|----------|--------|-----------|--------|
-| Low | Implement `--no-examples` flag | Some users may want minimal output | 1-2 hours |
-| Low | Add example output documentation | Help users validate their commands | 2-3 hours |
-| Medium | Scalability testing with 100+ params | Ensure performance with complex tools | 1-2 hours |
-| Low | Add placeholder syntax to help text | Guide new users | 30 minutes |
+| Priority | Action                               | Rationale                             | Effort     |
+| -------- | ------------------------------------ | ------------------------------------- | ---------- |
+| Low      | Implement `--no-examples` flag       | Some users may want minimal output    | 1-2 hours  |
+| Low      | Add example output documentation     | Help users validate their commands    | 2-3 hours  |
+| Medium   | Scalability testing with 100+ params | Ensure performance with complex tools | 1-2 hours  |
+| Low      | Add placeholder syntax to help text  | Guide new users                       | 30 minutes |
 
 ### Positive Outcomes
 
@@ -736,6 +751,7 @@ A: No. Changes are purely display format. All functionality is backward compatib
 
 **Q: Why was markdown chosen over plain text?**
 A: Markdown provides:
+
 - Better visual hierarchy with heading levels
 - Structured output suitable for piping to docs
 - Improved readability in most terminals
@@ -746,6 +762,7 @@ A: Markdown provides:
 ADR-0006 implementation successfully achieves its core objective: **reducing friction for users invoking tools by providing auto-generated, copy-paste-ready command examples.**
 
 The implementation includes:
+
 - ✅ Complete example generation engine supporting all JSON schema types
 - ✅ Comprehensive test coverage (23 tests, 100% passing)
 - ✅ Clean, maintainable code with good separation of concerns

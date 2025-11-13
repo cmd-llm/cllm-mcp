@@ -11,6 +11,7 @@ The cllm-mcp project currently supports configuration file discovery across mult
 ### Current State
 
 The current configuration management (from ADR-0003) searches for `config.json` in:
+
 1. Explicitly specified path (`--config` flag)
 2. `~/.config/cllm-mcp/config.json` (user's XDG config directory)
 3. `~/.cllm/config.json` (home directory)
@@ -18,6 +19,7 @@ The current configuration management (from ADR-0003) searches for `config.json` 
 5. Current working directory
 
 **Issues with current approach**:
+
 - Ad-hoc search order without clear precedence rules
 - No project-specific configuration support
 - Doesn't align with CLLM ecosystem conventions
@@ -35,6 +37,7 @@ The CLLM ecosystem defines a well-established configuration precedence (lowest t
 5. **CLI arguments**: Always take precedence
 
 **Advantages of this approach**:
+
 - Widely recognized pattern in development tools
 - Allows global defaults and project-level overrides
 - Clear, predictable resolution order
@@ -61,6 +64,7 @@ The new standardized search order (lowest to highest priority):
 ### File Names and Formats
 
 Primary configuration file names (in order of preference):
+
 - `mcp-config.json` (primary format, aligned with CLLM conventions)
 - `Cllmfile.json` (alternative format)
 - `Cllmfile.yml` (future support)
@@ -68,6 +72,7 @@ Primary configuration file names (in order of preference):
 ### Directory Structure
 
 **Global configuration**:
+
 ```bash
 ~/.cllm/
 ├── mcp-config.json          # Global MCP server definitions
@@ -76,6 +81,7 @@ Primary configuration file names (in order of preference):
 ```
 
 **Project-specific configuration**:
+
 ```bash
 project/
 ├── .cllm/
@@ -86,6 +92,7 @@ project/
 ```
 
 **Current directory**:
+
 ```bash
 ./mcp-config.json            # Can be checked into version control
 ./Cllmfile.json              # Can be checked into version control
@@ -135,6 +142,7 @@ export CLLM_MCP_USE_DAEMON="false"
 ```
 
 Environment variable naming convention:
+
 - Prefix: `CLLM_MCP_`
 - Format: `CLLM_MCP_{FEATURE}={value}`
 - Examples:
@@ -252,18 +260,22 @@ cllm-mcp config show
 ## Alternatives Considered
 
 ### 1. Keep Current Ad-Hoc Approach
+
 **Pros**: No migration needed, works today
 **Cons**: Inconsistent, confusing, not aligned with ecosystem
 
 ### 2. Single Configuration Location Only
+
 **Pros**: Simplicity, no precedence confusion
 **Cons**: No per-project overrides, forces global config
 
 ### 3. Adopt Terraform-style Approach
+
 **Pros**: Well-known pattern
 **Cons**: Heavier configuration format, less flexible
 
 ### 4. Use Environment Variables Only
+
 **Pros**: Simple for CI/CD, no files needed
 **Cons**: Not user-friendly, verbose to set many configs
 
@@ -272,6 +284,7 @@ cllm-mcp config show
 **Chosen**: CLLM configuration precedence with `.cllm` folder standard
 
 This approach provides:
+
 - Clear alignment with CLLM ecosystem
 - Familiar pattern from established tools
 - Flexibility for all deployment scenarios
@@ -281,6 +294,7 @@ This approach provides:
 ## Implementation Plan
 
 ### Phase 1: Foundation (Sprint 1-2)
+
 - [ ] Update `config.py` to implement new search algorithm
 - [ ] Add `.cllm` folder support
 - [ ] Implement environment variable parsing
@@ -288,6 +302,7 @@ This approach provides:
 - [ ] Update tests for new search order
 
 ### Phase 2: Tooling (Sprint 3-4)
+
 - [ ] Create `cllm-mcp config show` command
 - [ ] Create `cllm-mcp config migrate` command
 - [ ] Add configuration validation enhancements
@@ -295,6 +310,7 @@ This approach provides:
 - [ ] Create migration guide documentation
 
 ### Phase 3: Documentation (Sprint 5)
+
 - [ ] Update README with new config locations
 - [ ] Create migration guide
 - [ ] Document environment variables
@@ -302,6 +318,7 @@ This approach provides:
 - [ ] Add troubleshooting guide
 
 ### Phase 4: Cleanup (Year 2+)
+
 - [ ] Remove old search paths (with long deprecation)
 - [ ] Remove backward compatibility code
 - [ ] Archive migration tools
@@ -368,6 +385,7 @@ cllm-mcp --verbose list-tools time
 ## Testing Strategy
 
 ### Unit Tests
+
 - [ ] Configuration file search algorithm
 - [ ] Environment variable parsing
 - [ ] CLI argument priority validation
@@ -375,12 +393,14 @@ cllm-mcp --verbose list-tools time
 - [ ] Precedence order verification
 
 ### Integration Tests
+
 - [ ] Multiple config files present
 - [ ] Config file not found (fallback)
 - [ ] Mixed environment variables and files
 - [ ] CLI args overriding all sources
 
 ### Migration Tests
+
 - [ ] Backward compatibility with old paths
 - [ ] Deprecation warnings
 - [ ] Config migration command
@@ -388,6 +408,7 @@ cllm-mcp --verbose list-tools time
 ## Monitoring & Observability
 
 ### Configuration Tracing
+
 Enable with `--verbose` flag:
 
 ```bash
@@ -401,6 +422,7 @@ cllm-mcp --verbose list-tools time
 ```
 
 ### Metrics
+
 - Configuration source distribution (file vs. env vs. CLI)
 - Configuration load times
 - Configuration validation errors
@@ -478,11 +500,13 @@ ADR-0004 was successfully implemented and deployed. The CLLM-style configuration
 #### ✅ Fully Achieved - Configuration Search Algorithm
 
 **Proposal** (ADR Section: "Configuration Search Algorithm", Lines 96-120):
+
 - Support for 3 primary locations with highest priority last
 - Returns first found config file with Optional[Path] type
 - Python pseudocode example provided
 
 **Implementation** (config.py:40-151):
+
 - **Enhanced**: Returns tuple `(Optional[Path], List[str])` to provide detailed tracing
 - **Precedence correctly implemented**:
   1. `~/.cllm/mcp-config.json` (global)
@@ -498,10 +522,12 @@ ADR-0004 was successfully implemented and deployed. The CLLM-style configuration
 #### ✅ Fully Achieved - Environment Variable Support
 
 **Proposal** (ADR Section: "Environment Variable Support", Lines 122-145):
+
 - `CLLM_MCP_CONFIG` variable for explicit config path override
 - Suggested but not mandated other variables (`CLLM_MCP_SOCKET`, `CLLM_MCP_NO_DAEMON`, etc.)
 
 **Implementation** (config.py:28-37):
+
 - **Core feature implemented**: `CLLM_MCP_CONFIG` environment variable fully functional
 - **Positioned correctly**: At priority level 4 in precedence chain (between file discovery and CLI args)
 - **Tested**: Environment variable override test passing (test_environment_variable_override)
@@ -511,11 +537,13 @@ ADR-0004 was successfully implemented and deployed. The CLLM-style configuration
 #### ✅ Fully Achieved - CLI Argument Precedence
 
 **Proposal** (ADR Section: "CLI Argument Precedence", Lines 146-155):
+
 - `--config` argument always takes highest priority
 - Override behavior for all other sources
 - Example commands provided
 
 **Implementation** (main.py:116-121, 295-310):
+
 - **Correctly implemented**: `--config` argument given highest precedence
 - **Integration**: All command handlers use `find_config_file(args.config)` pattern
 - **Working**: Configuration resolves correctly across all commands
@@ -525,11 +553,13 @@ ADR-0004 was successfully implemented and deployed. The CLLM-style configuration
 #### ✅ Enhanced - Configuration Validation
 
 **Proposal** (ADR Section: "Configuration File Format", Lines 157-185):
+
 - Defined expected JSON schema with mcpServers structure
 - Optional fields: daemon, logging
 - No validation algorithm proposed
 
 **Implementation** (config.py:183-225):
+
 - **Validation implemented**: `validate_config(config)` function checks:
   - Required "mcpServers" key exists
   - Each server has required "command" field
@@ -543,10 +573,12 @@ ADR-0004 was successfully implemented and deployed. The CLLM-style configuration
 #### ✅ Exceeded - Verbose Mode & Configuration Tracing
 
 **Proposal** (ADR Section: "Monitoring & Observability", Lines 388-402):
+
 - Suggested `--verbose` flag would show configuration resolution
 - Example output provided showing path checks
 
 **Implementation** (config.py:64-151, main.py integration):
+
 - **Full implementation**: `find_config_file(..., verbose=True)` returns trace messages
 - **Format**: Messages prefixed with `[CONFIG]` marker as proposed
 - **Detail level**: Shows checked paths, found vs. not found, deprecation warnings
@@ -558,12 +590,14 @@ ADR-0004 was successfully implemented and deployed. The CLLM-style configuration
 #### ✅ Fully Achieved - Configuration Commands (config subcommand group)
 
 **Proposal** (ADR Section: "Migration Commands", Lines 207-221):
+
 - Proposed 3 commands (not implemented in MVP):
   - `cllm-mcp config migrate` - Move configs to appropriate locations
   - `cllm-mcp config validate` - Check configuration validity
   - `cllm-mcp config show` - Display active configuration
 
 **Implementation** (main.py:217-228, config.py:250-350):
+
 - **All 3 proposed commands implemented** + 1 additional:
   1. ✅ `config show` - Shows active config with full resolution trace
   2. ✅ `config validate` - Validates config file(s)
@@ -576,11 +610,13 @@ ADR-0004 was successfully implemented and deployed. The CLLM-style configuration
 #### ✅ Fully Achieved - Backward Compatibility
 
 **Proposal** (ADR Section: "Migration Path", Lines 187-205):
+
 - Year 1: Continue supporting old paths with deprecation warnings
 - Year 2: Warnings escalate, automated migration tools
 - Year 3+: Old paths removed
 
 **Implementation** (config.py:126-146):
+
 - **Year 1 strategy implemented**: Old paths checked but with deprecation warnings
 - **Deprecation tracking**: Warnings shown in verbose trace
 - **Paths supported**:
@@ -593,11 +629,13 @@ ADR-0004 was successfully implemented and deployed. The CLLM-style configuration
 #### ⚠️ Partially Deferred - File Format Support
 
 **Proposal** (ADR Section: "File Names and Formats", Lines 61-66):
+
 - Primary: `mcp-config.json`
 - Alternative: `Cllmfile.json`
 - Future: `Cllmfile.yml`
 
 **Implementation** (config.py):
+
 - **Primary format implemented**: JSON only
 - **File names supported**: `mcp-config.json` hardcoded
 - **YAML support**: Deferred to Phase 3 (as proposed)
@@ -608,7 +646,9 @@ ADR-0004 was successfully implemented and deployed. The CLLM-style configuration
 ### Key Implementation Enhancements
 
 #### 1. **Return Type Enhancement: Tuple with Trace Messages**
+
 The proposal specified returning `Optional[Path]`, but the implementation returns `Tuple[Optional[Path], List[str]]` with diagnostic trace messages. This enhancement:
+
 - Provides visibility into configuration resolution
 - Enables debugging without separate logging infrastructure
 - Maintains backward compatibility by returning path as first element
@@ -620,14 +660,18 @@ def find_config_file(explicit_path=None, verbose=False) -> Tuple[Optional[Path],
 ```
 
 #### 2. **Configuration Validation System**
+
 Not explicitly proposed but essential for robustness:
+
 - Schema validation against expected structure
 - Helpful error messages
 - Integration with `config validate` command
 - Prevents invalid configurations from being silently accepted
 
 #### 3. **Configuration Display Commands**
+
 Early implementation of all three proposed Phase 2 commands:
+
 - `config show` - Provides full resolution details
 - `config validate` - Catches configuration issues early
 - `config list` - Useful for discovering available servers
@@ -645,30 +689,33 @@ Early implementation of all three proposed Phase 2 commands:
 ### Challenges & Resolutions
 
 #### Challenge 1: Return Value vs. Diagnostic Information
+
 **Problem**: Original proposal's `Optional[Path]` return didn't support diagnostic tracing
 **Resolution**: Enhanced to return `Tuple[Optional[Path], List[str]]` for traces
 **Impact**: Positive - enables better debugging and user visibility
 
 #### Challenge 2: Configuration Format Extensibility
+
 **Problem**: Hard-coded `mcp-config.json` limits file name variations
 **Resolution**: JSON format chosen as MVP; variants deferred to Phase 3
 **Impact**: Acceptable - meets MVP requirements; future-proof design
 
 #### Challenge 3: Multiple Config File Merging
+
 **Problem**: Proposal didn't specify behavior when multiple configs exist
 **Resolution**: Highest priority file is used exclusively (not merged)
 **Impact**: Acceptable - simple, predictable behavior; merge feature can be added later if needed
 
 ### Metrics & Outcomes
 
-| Metric | Target | Actual | Status |
-|--------|--------|--------|--------|
-| Core precedence tests | 5 tests | 7 tests | ✅ Exceeded |
-| Test pass rate | 100% | 100% | ✅ Met |
-| Backward compatibility | Year 1 support | Implemented | ✅ Met |
-| Configuration commands | 3 (Phase 2) | 4 (Phase 1) | ✅ Exceeded |
-| Verbose tracing | Proposed | Implemented | ✅ Met |
-| Documentation | Inline + guide | Complete | ✅ Met |
+| Metric                 | Target         | Actual      | Status      |
+| ---------------------- | -------------- | ----------- | ----------- |
+| Core precedence tests  | 5 tests        | 7 tests     | ✅ Exceeded |
+| Test pass rate         | 100%           | 100%        | ✅ Met      |
+| Backward compatibility | Year 1 support | Implemented | ✅ Met      |
+| Configuration commands | 3 (Phase 2)    | 4 (Phase 1) | ✅ Exceeded |
+| Verbose tracing        | Proposed       | Implemented | ✅ Met      |
+| Documentation          | Inline + guide | Complete    | ✅ Met      |
 
 ### Technical Debt & Future Improvements
 
@@ -687,16 +734,17 @@ Early implementation of all three proposed Phase 2 commands:
 
 ### Risk Assessment
 
-| Risk | Original Concern | Current Status | Mitigation |
-|------|------------------|----------------|-----------|
-| User migration friction | Old configs may be overlooked | Low - Deprecation warnings guide users | Verbose logging, clear messages |
-| Configuration precedence confusion | Multiple config files exist | Low - `config show` clarifies which is active | Clear documentation, verbose mode |
-| Backward compatibility breakage | Old paths may be deleted prematurely | Low - Year 1 strategy maintained | Timeline enforcement, tests |
-| Format extensibility | Adding YAML/alternatives difficult | Low - Deferred appropriately | Phase 3 planning |
+| Risk                               | Original Concern                     | Current Status                                | Mitigation                        |
+| ---------------------------------- | ------------------------------------ | --------------------------------------------- | --------------------------------- |
+| User migration friction            | Old configs may be overlooked        | Low - Deprecation warnings guide users        | Verbose logging, clear messages   |
+| Configuration precedence confusion | Multiple config files exist          | Low - `config show` clarifies which is active | Clear documentation, verbose mode |
+| Backward compatibility breakage    | Old paths may be deleted prematurely | Low - Year 1 strategy maintained              | Timeline enforcement, tests       |
+| Format extensibility               | Adding YAML/alternatives difficult   | Low - Deferred appropriately                  | Phase 3 planning                  |
 
 ### Recommendations for Next Phases
 
 #### Phase 2 (Tooling & Advanced Features) - Recommended Priority:
+
 1. **Implement remaining 23 template tests** - Comprehensive coverage for edge cases
 2. **Add config merging support** - Allow global + project configs to merge with precedence
 3. **Implement additional env variables** - `CLLM_MCP_SOCKET`, `CLLM_MCP_NO_DAEMON`, etc.
@@ -704,6 +752,7 @@ Early implementation of all three proposed Phase 2 commands:
 5. **Enhanced validation** - Schema validation against JSON schema
 
 #### Phase 3 (Extended Format Support) - Future Consideration:
+
 1. **YAML support** - Implement `Cllmfile.yml` alternative
 2. **Alternative file names** - Support `Cllmfile.json` variant
 3. **Configuration inheritance** - Base configs with extends mechanism

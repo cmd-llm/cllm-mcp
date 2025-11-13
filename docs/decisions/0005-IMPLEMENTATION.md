@@ -47,6 +47,7 @@ This document summarizes the implementation of ADR-0005: "Automatically Initiali
 #### New Functions
 
 **`initialize_servers_async(daemon, config, no_auto_init=False)`**
+
 - Asynchronous function to initialize all auto-start servers from configuration
 - Implements parallel batch startup based on `parallelInitialization` setting
 - Handles timeouts per batch (not just per server)
@@ -57,15 +58,18 @@ This document summarizes the implementation of ADR-0005: "Automatically Initiali
 - Returns `InitializationResult` with detailed status information
 
 **`_start_server_with_timeout(daemon, name, server_config, timeout)`**
+
 - Asynchronous helper to start a single server with timeout
 - Runs server startup in executor to avoid blocking async event loop
 - Returns result dict with success/failure status and duration
 
 **`build_server_command(server_config)`**
+
 - Builds full command from configuration
 - Handles both simple commands and commands with arguments
 
 **Helper Function**: `_format_uptime(seconds)`
+
 - Formats uptime in human-readable format (e.g., "2h 15m")
 
 #### InitializationResult Class
@@ -77,26 +81,31 @@ This document summarizes the implementation of ADR-0005: "Automatically Initiali
 #### MCPDaemon Class Enhancements
 
 **New Instance Variables**:
+
 - `auto_started_servers`: Set to track which servers were auto-started
 - `server_start_times`: Dict mapping server names to start timestamps
 
 **Enhanced Methods**:
 
 **`start_server(name, command, auto_start=False)`**
+
 - Added `auto_start` parameter
 - Automatically adds server to `auto_started_servers` if `auto_start=True`
 - Records start time for uptime calculation
 
 **`monitor_server_health(interval=30)`**
+
 - New method that runs as background thread
 - Periodically checks if auto-started servers are still running
 - Restarts crashed auto-started servers
 - Respects `self.running` flag for graceful shutdown
 
 **`stop_all()`**
+
 - Enhanced to clear `auto_started_servers` and `server_start_times` on shutdown
 
 **`get_status()`**
+
 - Enhanced to separate auto-started and on-demand servers
 - Includes uptime for each server
 - Returns separate counts for auto-started vs on-demand
@@ -131,6 +140,7 @@ This document summarizes the implementation of ADR-0005: "Automatically Initiali
 #### New Flag
 
 `--no-auto-init` (for `daemon start` command)
+
 - Disables automatic server initialization
 - Allows manual server startup control
 - Useful for resource-constrained environments
@@ -144,6 +154,7 @@ This document summarizes the implementation of ADR-0005: "Automatically Initiali
 - Groups servers by type in human-readable format
 
 Example output:
+
 ```
 Daemon status: running
 Socket: /tmp/mcp-daemon.sock

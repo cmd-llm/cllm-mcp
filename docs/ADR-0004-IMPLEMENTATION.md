@@ -3,6 +3,7 @@
 **Date**: November 12, 2025
 **Status**: ✅ COMPLETE
 **Commits**:
+
 - `9362981` - Implement ADR-0004 CLLM-style configuration system
 - `1a86932` - Add tests for CLLM-style configuration precedence
 
@@ -31,6 +32,7 @@ ADR-0004 has been fully implemented. The cllm-mcp project now uses CLLM-style co
 ### 2. New/Updated Functions in `config.py`
 
 #### `find_config_file(explicit_path=None, verbose=False)`
+
 - Returns tuple: `(path, trace_messages)`
 - Implements CLLM precedence
 - Provides verbose tracing for debugging
@@ -38,15 +40,18 @@ ADR-0004 has been fully implemented. The cllm-mcp project now uses CLLM-style co
 - Shows deprecation warnings for old locations
 
 #### `_get_env_config_override()`
+
 - Supports `CLLM_MCP_CONFIG` environment variable
 - Returns config path from environment if set
 
 #### Updated command functions
+
 - `cmd_config_list()` - Uses new find_config_file() API
 - `cmd_config_validate()` - Uses new find_config_file() API
 - Both support verbose tracing
 
 #### New command functions
+
 - `cmd_config_show()` - Display active config and resolution
 - `cmd_config_migrate()` - Migrate old configs to new structure
 
@@ -107,6 +112,7 @@ cllm-mcp config list
 ### Test Coverage: 46 Tests
 
 **New CLLM Precedence Tests** (7 tests):
+
 1. ✅ `test_find_config_returns_tuple` - Returns (path, trace) tuple
 2. ✅ `test_precedence_explicit_path_highest` - CLI arg has highest priority
 3. ✅ `test_precedence_current_directory` - ./mcp-config.json found correctly
@@ -116,6 +122,7 @@ cllm-mcp config list
 7. ✅ `test_backward_compatibility_deprecation_warning` - Old paths show warnings
 
 **Existing Tests** (39 tests):
+
 - All passing ✅
 - No regressions
 - Full config validation coverage
@@ -132,29 +139,34 @@ cllm-mcp config list
 ## Key Features
 
 ### ✅ CLLM-Aligned
+
 - Matches industry-standard configuration patterns
 - Aligns with Terraform, Docker, Ruby conventions
 - Clear, predictable precedence order
 
 ### ✅ Developer-Friendly
+
 - Verbose tracing shows which config is active
 - `config show` command for debugging
 - `config migrate` command for easy transition
 - Clear error messages and guidance
 
 ### ✅ Backward Compatible
+
 - Old `~/.config/cllm-mcp/config.json` still works
 - Old `/etc/cllm-mcp/config.json` still works
 - Deprecation warnings inform users of new structure
 - Year 1 compatibility with migration tools
 
 ### ✅ Enterprise-Ready
+
 - Environment variable support for CI/CD
 - Configuration precedence prevents accidents
 - Clear separation of global vs. local configs
 - Lock mechanisms ready (for Phase 2)
 
 ### ✅ Well-Tested
+
 - 46 tests covering all scenarios
 - Precedence order verified
 - Environment variables tested
@@ -165,6 +177,7 @@ cllm-mcp config list
 ## File Changes
 
 ### Modified Files
+
 - `cllm_mcp/config.py` - Implements new precedence (350+ lines updated)
 - `cllm_mcp/main.py` - Routes new commands and handles tuple returns
 - `tests/unit/test_config_management.py` - Added 7 new precedence tests
@@ -172,6 +185,7 @@ cllm-mcp config list
 ### Key Implementation Details
 
 **find_config_file() Signature Change**:
+
 ```python
 # Old
 def find_config_file(explicit_path: Optional[str] = None) -> Optional[Path]
@@ -182,6 +196,7 @@ def find_config_file(explicit_path: Optional[str] = None, verbose: bool = False)
 ```
 
 **Backward Compatibility Strategy**:
+
 - Check new paths first (priority)
 - Fall back to old paths with deprecation warnings
 - Users can still use old locations
@@ -192,6 +207,7 @@ def find_config_file(explicit_path: Optional[str] = None, verbose: bool = False)
 ## Configuration Examples
 
 ### Global Defaults
+
 ```bash
 mkdir -p ~/.cllm
 cat > ~/.cllm/mcp-config.json << 'EOF'
@@ -207,6 +223,7 @@ EOF
 ```
 
 ### Project-Specific
+
 ```bash
 mkdir -p .cllm
 cat > .cllm/mcp-config.json << 'EOF'
@@ -222,6 +239,7 @@ EOF
 ```
 
 ### Environment Variable Override
+
 ```bash
 export CLLM_MCP_CONFIG=/etc/cllm-mcp/shared.json
 cllm-mcp config list
@@ -241,12 +259,14 @@ cllm-mcp config list
 ## Future Enhancements
 
 ### Phase 2 (Planned)
+
 - Lock file mechanism for daemon robustness
 - YAML configuration support
 - Config merging from multiple files
 - Better migration tooling
 
 ### Phase 3 (Planned)
+
 - Shell completions
 - Quick-start guide
 - Deprecation timeline for old paths
@@ -256,6 +276,7 @@ cllm-mcp config list
 ## Migration Guide for Users
 
 ### Current Users (Old Path)
+
 ```bash
 # Check current config
 uv run cllm-mcp config show
@@ -268,6 +289,7 @@ uv run cllm-mcp config list
 ```
 
 ### New Users (New Path)
+
 ```bash
 # Create global config
 mkdir -p ~/.cllm
@@ -303,6 +325,7 @@ uv run cllm-mcp list-tools your-server
 ## Commits Created
 
 ### Commit 1: `9362981` - Implementation
+
 ```
 feat: Implement ADR-0004 CLLM-style configuration system
 
@@ -316,6 +339,7 @@ feat: Implement ADR-0004 CLLM-style configuration system
 ```
 
 ### Commit 2: `1a86932` - Testing
+
 ```
 test: Add tests for CLLM-style configuration precedence
 
@@ -331,6 +355,7 @@ test: Add tests for CLLM-style configuration precedence
 ## Verification Checklist
 
 ✅ Implementation Complete
+
 - [x] New find_config_file() works
 - [x] CLLM precedence implemented
 - [x] Environment variables supported
@@ -341,6 +366,7 @@ test: Add tests for CLLM-style configuration precedence
 - [x] Backward compatible
 
 ✅ Testing Complete
+
 - [x] 46/46 tests passing
 - [x] Precedence verified
 - [x] Environment vars tested
@@ -348,6 +374,7 @@ test: Add tests for CLLM-style configuration precedence
 - [x] No regressions
 
 ✅ Code Quality
+
 - [x] Follows project conventions
 - [x] Well-documented
 - [x] Clear error messages
@@ -380,6 +407,7 @@ test: Add tests for CLLM-style configuration precedence
 ADR-0004 implementation is **COMPLETE** and **PRODUCTION-READY**. The system now uses industry-standard CLLM-style configuration precedence, providing users with familiar patterns and flexibility to manage configurations at global, project, and per-command levels.
 
 All design goals have been achieved:
+
 - ✅ Ecosystem alignment
 - ✅ Clear precedence
 - ✅ Flexible configuration

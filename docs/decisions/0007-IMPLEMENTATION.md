@@ -9,6 +9,7 @@ This document provides specific implementation details, version timelines, and s
 ### v1.x Series - Current & Transition Period
 
 #### v1.0.0 - Foundation (Current)
+
 - **Status**: Pre-release or recent
 - **Legacy Scripts**: `mcp_cli.py` and `mcp_daemon.py` still present and functional
 - **Modern Command**: `cllm-mcp` works via installed package
@@ -16,9 +17,11 @@ This document provides specific implementation details, version timelines, and s
 - **User Action**: None required; both paths work
 
 #### v1.1.0 - Deprecation Warnings (Recommended)
+
 - **Timeline**: 1-2 releases after v1.0.0
 - **Status**: Add warnings to legacy scripts
 - **Changes**:
+
   ```python
   # mcp_cli.py and mcp_daemon.py startup
   import warnings
@@ -36,6 +39,7 @@ This document provides specific implementation details, version timelines, and s
 - **User Action**: Update scripts/aliases to use `cllm-mcp` command
 
 #### v1.2.0+ - Transition Series
+
 - **Status**: Legacy scripts still work with warnings
 - **Focus**: Bug fixes and improvements to modern command only
 - **No new features**: Added only to modern code path
@@ -45,6 +49,7 @@ This document provides specific implementation details, version timelines, and s
 ### v2.0.0 - Major Breaking Release
 
 #### v2.0.0 - Legacy Removal (First Major Version Bump)
+
 - **Timeline**: After v1.x transition period (suggest 6+ months or 3+ minor releases)
 - **Status**: Legacy scripts completely removed
 - **Changes**:
@@ -58,6 +63,7 @@ This document provides specific implementation details, version timelines, and s
 - **User Action**: MUST have migrated to `cllm-mcp` command
 
 #### v2.0.0+ - Modern Era
+
 - **Status**: Single authoritative code path
 - **Focus**: New features, improvements
 - **Distribution**: Cleaner, smaller package
@@ -66,6 +72,7 @@ This document provides specific implementation details, version timelines, and s
 ### v3.0.0+ - Future (Complete Modernization)
 
 #### v3.0.0 - Configuration Migration
+
 - **Status**: Remove old config path support
 - **Changes**: Old paths (`~/.config/cllm-mcp/`) no longer checked
 - **Migration Path**: `cllm-mcp config migrate` command to help (if not done already)
@@ -79,24 +86,29 @@ This document provides specific implementation details, version timelines, and s
 #### 1.1 Create Migration Materials
 
 **File**: `docs/MIGRATION.md` (new)
+
 ```markdown
 # Migration Guide: From Legacy Scripts to cllm-mcp
 
 ## Quick Start
+
 - Install: `pip install --upgrade cllm-mcp`
 - Update scripts: Replace `python mcp_cli.py` with `cllm-mcp`
 - Done!
 
 ## Detailed Migration
+
 [See section below for detailed guide]
 
 ## FAQ
+
 [See section below for frequently asked questions]
 ```
 
 #### 1.2 Add Deprecation Warnings
 
 **File**: `mcp_cli.py` (modify)
+
 ```python
 #!/usr/bin/env python
 """
@@ -131,6 +143,7 @@ if __name__ == "__main__":
 ```
 
 **File**: `mcp_daemon.py` (modify)
+
 ```python
 #!/usr/bin/env python
 """
@@ -167,9 +180,11 @@ if __name__ == "__main__":
 #### 1.3 Update README
 
 **File**: `README.md` (modify)
+
 - Move legacy commands section to "Deprecated Commands" at end of document
 - Add prominent "Installation" section near top:
-  ```markdown
+
+  ````markdown
   ## Installation
 
   ```bash
@@ -177,6 +192,10 @@ if __name__ == "__main__":
   cllm-mcp --version
   cllm-mcp list-tools <server>
   ```
+  ````
+
+  ```
+
   ```
 
 - Add deprecation notice:
@@ -190,18 +209,21 @@ if __name__ == "__main__":
 **File**: `.github/workflows/*.yml` (modify)
 
 Replace all instances of:
+
 ```yaml
 - run: python mcp_cli.py list-tools
 - run: python mcp_daemon.py daemon start
 ```
 
 With:
+
 ```yaml
 - run: uv run cllm-mcp list-tools
 - run: uv run cllm-mcp daemon start
 ```
 
 Or after install:
+
 ```yaml
 - run: pip install -e .
 - run: cllm-mcp list-tools
@@ -211,6 +233,7 @@ Or after install:
 #### 1.5 Create .gitignore Updates
 
 **File**: `.gitignore` (verify)
+
 ```
 # Remove if present (legacy scripts no longer distributed)
 # mcp_cli.py
@@ -236,6 +259,7 @@ git rm mcp_daemon.py
 **File**: `pyproject.toml` (verify/update)
 
 Before:
+
 ```toml
 [project]
 name = "cllm-mcp"
@@ -247,6 +271,7 @@ scripts = {
 ```
 
 After (verify same, legacy already removed from scripts):
+
 ```toml
 [project]
 name = "cllm-mcp"
@@ -263,8 +288,10 @@ cllm-mcp = "cllm_mcp.main:cli"
 #### 2.3 Update Package Manifest
 
 **File**: `MANIFEST.in` (if exists, verify)
+
 - Ensure legacy scripts are NOT included in distribution
 - Typical pattern:
+
 ```
 include README.md
 include LICENSE
@@ -277,6 +304,7 @@ recursive-include docs *.md
 #### 2.4 Update Version in Code
 
 **File**: `cllm_mcp/__init__.py` or version file
+
 ```python
 __version__ = "2.0.0"  # Major version bump for breaking change
 ```
@@ -285,18 +313,20 @@ __version__ = "2.0.0"  # Major version bump for breaking change
 
 **File**: `CHANGELOG.md` or `NEWS.md` (create/update)
 
-```markdown
+````markdown
 # Changelog
 
 ## [2.0.0] - 2025-XX-XX (Breaking Release)
 
 ### BREAKING CHANGES
+
 - **REMOVED**: Legacy Python scripts (`mcp_cli.py`, `mcp_daemon.py`)
   - Users must use the installed `cllm-mcp` command instead
   - Migration is simple: `pip install cllm-mcp && cllm-mcp [command]`
   - See [Migration Guide](docs/MIGRATION.md) for details
 
 ### Reasons for Removal
+
 - Reduces technical debt and code duplication
 - Aligns with CLLM ecosystem distribution standards
 - Simplifies maintenance and testing
@@ -304,11 +334,13 @@ __version__ = "2.0.0"  # Major version bump for breaking change
 - Single authoritative code path
 
 ### Upgrade Path
+
 1. Install latest: `pip install --upgrade cllm-mcp>=2.0.0`
 2. Update scripts: Replace `python mcp_cli.py` with `cllm-mcp`
 3. Configuration: Unchanged (fully backward compatible via ADR-0004)
 
 ### Migration Examples
+
 ```bash
 # Before (deprecated)
 python mcp_cli.py list-tools filesystem
@@ -318,26 +350,32 @@ python mcp_daemon.py daemon start
 cllm-mcp list-tools filesystem
 cllm-mcp daemon start
 ```
+````
 
 ### What's Unchanged
+
 - All command functionality is identical
 - Configuration system fully backward compatible
 - All features work exactly the same
 - No breaking changes to APIs or configuration
 
 ### Support
+
 - [Migration Guide](docs/MIGRATION.md) - Detailed instructions for all scenarios
 - [FAQ](docs/FAQ.md#migration) - Common migration questions
 - GitHub Issues - Ask for help if needed
 
 ## [1.2.x] - Legacy Warning Phase
+
 - Added deprecation warnings to `mcp_cli.py` and `mcp_daemon.py`
 - Recommended upgrading to use `cllm-mcp` command
 - Full backward compatibility maintained
 
 ## [1.0.0] - Initial Unified Architecture
+
 - [Previous release notes...]
-```
+
+````
 
 ### Phase 3: Release & Communication (Sprint 2-3)
 
@@ -365,9 +403,10 @@ clean command-line interface aligned with CLLM ecosystem standards.
 ### Step 1: Install
 ```bash
 pip install --upgrade cllm-mcp
-```
+````
 
 ### Step 2: Update Your Scripts
+
 ```bash
 # Before
 python mcp_cli.py list-tools filesystem
@@ -377,6 +416,7 @@ cllm-mcp list-tools filesystem
 ```
 
 ### Step 3: Done! 🎉
+
 ```bash
 cllm-mcp --version
 ```
@@ -411,6 +451,7 @@ See [MIGRATION.md](https://github.com/o3-cloud/cllm-mcp/docs/MIGRATION.md)
 - ❓ [FAQ](docs/FAQ.md#migration)
 - 💬 [GitHub Discussions](https://github.com/o3-cloud/cllm-mcp/discussions)
 - 📝 [ADR-0007: Architecture Decision](docs/decisions/0007-drop-legacy-commands-modernize-config.md)
+
 ```
 
 #### 3.2 Create Announcement
@@ -424,6 +465,7 @@ See [MIGRATION.md](https://github.com/o3-cloud/cllm-mcp/docs/MIGRATION.md)
 
 Sample announcement:
 ```
+
 🎯 v2.0.0 Released - Simplified Entry Points
 
 We've modernized the command-line interface by removing legacy Python script entry points.
@@ -432,7 +474,8 @@ All functionality is available via the single 'cllm-mcp' command.
 ⏱️ Migration takes ~2 minutes: pip install cllm-mcp && update your scripts
 
 📖 Full guide: https://github.com/o3-cloud/cllm-mcp/docs/MIGRATION.md
-```
+
+````
 
 ### Phase 4: Support & Cleanup (Sprint 3+)
 
@@ -458,29 +501,35 @@ about: Need help migrating from legacy scripts to cllm-mcp
 ## Resources
 - [Migration Guide](docs/MIGRATION.md)
 - [FAQ](docs/FAQ.md#migration)
-```
+````
 
 #### 4.2 Create FAQ
 
 **File**: `docs/FAQ.md` (add section)
 
-```markdown
+````markdown
 ## FAQ: Migration from Legacy Scripts
 
 ### Q: Why was this change made?
+
 **A**: To reduce technical debt, align with CLLM standards, and provide a cleaner distribution.
 
 ### Q: Do I need to migrate immediately?
+
 **A**: No, v1.x continues to work, but v2.0+ requires migration. See [timeline](docs/decisions/0007-drop-legacy-commands-modernize-config.md#deprecation-timeline--version-roadmap).
 
 ### Q: Will my existing configurations still work?
+
 **A**: Yes! The configuration system (ADR-0004) is fully backward compatible. Old paths still work.
 
 ### Q: What if I have `mcp_cli.py` in my PATH?
+
 **A**: After upgrading to v2.0, the script won't exist. Update your PATH or use `cllm-mcp` directly.
 
 ### Q: How do I update my shell scripts?
+
 **A**: Replace:
+
 ```bash
 # Before
 python mcp_cli.py list-tools filesystem
@@ -488,18 +537,23 @@ python mcp_cli.py list-tools filesystem
 # After
 cllm-mcp list-tools filesystem
 ```
+````
 
 ### Q: What if I'm developing locally?
+
 **A**: Use `uv run cllm-mcp` or `python -m cllm_mcp` instead.
 
 ### Q: Will the daemon still auto-initialize servers?
+
 **A**: Yes, ADR-0005 daemon auto-initialization works with the modern command.
 
 ### Q: Where do I report migration issues?
+
 **A**: [GitHub Issues](https://github.com/o3-cloud/cllm-mcp/issues) with label "migration"
 
 [More FAQ items...]
-```
+
+````
 
 #### 4.3 Provide Support
 
@@ -515,9 +569,10 @@ Create a GitHub Discussions category for migration help and monitor it during th
 python mcp_cli.py list-tools filesystem
 python mcp_cli.py call-tool filesystem read-file /path
 python mcp_daemon.py daemon start
-```
+````
 
 **Migration Steps**:
+
 ```bash
 # Step 1: Install
 pip install --upgrade cllm-mcp
@@ -534,6 +589,7 @@ cllm-mcp daemon start
 ```
 
 **After (v2.0+)**:
+
 ```bash
 cllm-mcp list-tools filesystem
 ```
@@ -541,12 +597,14 @@ cllm-mcp list-tools filesystem
 ### Use Case 2: Development Setup with `uv`
 
 **Before**:
+
 ```bash
 # Would use uv run with python command
 uv run python mcp_cli.py list-tools filesystem
 ```
 
 **After**:
+
 ```bash
 # Direct uv run with cllm-mcp
 uv run cllm-mcp list-tools filesystem
@@ -555,6 +613,7 @@ uv run cllm-mcp list-tools filesystem
 ### Use Case 3: Docker/Container
 
 **Before**:
+
 ```dockerfile
 FROM python:3.12
 WORKDIR /app
@@ -564,6 +623,7 @@ CMD ["python", "mcp_daemon.py", "daemon", "start"]
 ```
 
 **After**:
+
 ```dockerfile
 FROM python:3.12
 WORKDIR /app
@@ -574,6 +634,7 @@ CMD ["cllm-mcp", "daemon", "start"]
 ### Use Case 4: Project Integration Script
 
 **Before**:
+
 ```bash
 #!/bin/bash
 set -e
@@ -584,6 +645,7 @@ python mcp_daemon.py daemon start
 ```
 
 **After**:
+
 ```bash
 #!/bin/bash
 set -e
@@ -599,6 +661,7 @@ cllm-mcp daemon start
 ### Use Case 5: GitHub Actions / CI/CD
 
 **Before**:
+
 ```yaml
 name: Test MCP
 
@@ -618,6 +681,7 @@ jobs:
 ```
 
 **After**:
+
 ```yaml
 name: Test MCP
 

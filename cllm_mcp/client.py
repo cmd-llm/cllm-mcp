@@ -26,7 +26,6 @@ Examples:
 import argparse
 import hashlib
 import json
-import os
 import shlex
 import subprocess
 import sys
@@ -374,12 +373,14 @@ def cmd_list_tools(args):
                 # Generate and show example
                 example = generate_json_example(schema)
                 # Use server_name if available (from config), otherwise use server_command
-                server_ref = getattr(args, 'server_name', args.server_command)
+                server_ref = getattr(args, "server_name", args.server_command)
                 print("### Example\n")
                 print("```bash")
                 if example:
                     example_json = json.dumps(example)
-                    print(f"cllm-mcp call-tool {server_ref} {tool['name']} '{example_json}'")
+                    print(
+                        f"cllm-mcp call-tool {server_ref} {tool['name']} '{example_json}'"
+                    )
                 else:
                     # For tools with no parameters
                     print(f"cllm-mcp call-tool {server_ref} {tool['name']} '{{}}'")

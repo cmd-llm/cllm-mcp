@@ -11,12 +11,14 @@ The cllm-mcp daemon (from ADR-0003) provides significant performance benefits by
 ### Current State
 
 **How the daemon works today**:
+
 1. User runs `cllm-mcp daemon start`
 2. Daemon starts and waits for requests on the socket
 3. When a tool is called, the daemon launches the corresponding MCP server on-demand
 4. Server remains running until explicitly stopped or daemon shuts down
 
 **Problems with current approach**:
+
 - Users don't benefit from server caching until they explicitly use each server
 - First call to each server incurs startup overhead (defeats caching purpose)
 - No way to "warm up" servers at startup time
@@ -41,6 +43,7 @@ $ cllm-mcp call-tool filesystem read-file /path/to/other/file
 ### Configuration Already Supports Server Discovery
 
 From ADR-0004, we have a robust configuration system that:
+
 - Lists all configured MCP servers in `mcp-config.json`
 - Supports multiple configuration sources (global, project, env)
 - Validates server configurations
@@ -63,6 +66,7 @@ When the daemon starts, it should automatically initialize (launch) all MCP serv
 #### Core Changes
 
 **Daemon startup sequence**:
+
 ```
 1. Load configuration (find mcp-config.json using CLLM precedence)
 2. Validate configuration
@@ -115,6 +119,7 @@ The existing `mcp-config.json` structure supports this perfectly:
 ```
 
 **New configuration fields**:
+
 - `autoStart` (boolean, default: true): Whether to start this server on daemon startup
 - `optional` (boolean, default: false): If true, don't fail startup if server fails to initialize
 - `daemon.initializationTimeout` (number, default: 60): Total timeout for all server initialization
@@ -318,28 +323,34 @@ Case 6: Server crashes after startup
 ## Alternatives Considered
 
 ### 1. Keep Current On-Demand-Only Approach
+
 **Pros**: Minimal memory usage, fast daemon startup
 **Cons**: Users lose main benefit of caching on first call, latency variable
 
 ### 2. Manual Server Warm-up Command
+
 ```bash
 cllm-mcp daemon start
 cllm-mcp daemon warm-up filesystem time github
 ```
+
 **Pros**: Explicit control, opt-in
 **Cons**: Extra step, users must remember, same latency on first call
 
 ### 3. Auto-start Based on Usage Frequency
+
 Automatically start servers that are used frequently
 **Pros**: Smart, data-driven
 **Cons**: Complex to implement, requires usage tracking, can't predict new usage
 
 ### 4. Start Servers Lazily in Background
+
 Start daemon immediately, begin server initialization in background
 **Pros**: Fast daemon startup
 **Cons**: Race conditions, unpredictable availability, complex error handling
 
 ### 5. Per-Project Auto-Start Configuration
+
 Allow each project to specify which servers to auto-start
 **Pros**: Flexible, project-specific
 **Cons**: More complex, already possible with multiple configs
@@ -349,6 +360,7 @@ Allow each project to specify which servers to auto-start
 **Chosen**: Auto-initialize all configured servers on daemon startup with per-server opt-out
 
 This approach:
+
 - Delivers the core promise of daemon caching (zero warm-up latency)
 - Reuses existing configuration system (ADR-0004)
 - Provides flexible opt-out for resource-constrained environments
@@ -359,6 +371,7 @@ This approach:
 ## Implementation Plan
 
 ### Phase 1: Core Functionality (Sprint 1-2)
+
 - [ ] Add `autoStart` and `optional` fields to schema
 - [ ] Implement `initialize_servers()` function
 - [ ] Implement parallel server startup in `MCPDaemon.start()`
@@ -368,6 +381,7 @@ This approach:
 - [ ] Write unit tests for initialization logic
 
 ### Phase 2: Health Monitoring (Sprint 2-3)
+
 - [ ] Implement server health check function
 - [ ] Implement background health monitoring task
 - [ ] Add restart logic for crashed servers
@@ -375,6 +389,7 @@ This approach:
 - [ ] Write tests for health monitoring
 
 ### Phase 3: CLI & Configuration (Sprint 3)
+
 - [ ] Add `--no-auto-init` flag to `daemon start`
 - [ ] Update `daemon status` to show auto-started servers
 - [ ] Add `daemon reinitialize` command
@@ -382,6 +397,7 @@ This approach:
 - [ ] Add configuration examples
 
 ### Phase 4: Documentation & Migration (Sprint 4)
+
 - [ ] Write configuration guide
 - [ ] Document server health monitoring
 - [ ] Create troubleshooting guide
@@ -408,6 +424,7 @@ This approach:
   }
 }
 ```
+
 All servers will auto-start on daemon startup (default behavior).
 
 ### Mixed Auto-Start Configuration
@@ -481,6 +498,7 @@ All servers will auto-start on daemon startup (default behavior).
 ## Testing Strategy
 
 ### Unit Tests
+
 - [ ] Server initialization with valid config
 - [ ] Server initialization with invalid config
 - [ ] Parallel initialization batching
@@ -490,6 +508,7 @@ All servers will auto-start on daemon startup (default behavior).
 - [ ] Server restart logic
 
 ### Integration Tests
+
 - [ ] Full daemon startup with multiple servers
 - [ ] Partial failure with optional servers
 - [ ] Server crash and recovery
@@ -498,6 +517,7 @@ All servers will auto-start on daemon startup (default behavior).
 - [ ] On-demand server start alongside auto-started
 
 ### Edge Cases
+
 - [ ] No servers configured
 - [ ] All servers fail to start (required)
 - [ ] Mixed success/failure
@@ -690,15 +710,15 @@ A: Higher-priority config overrides lower-priority. Use `cllm-mcp config show` t
 
 #### Differences from Proposal 📋
 
-| Aspect | Proposed | Actual | Reason |
-|--------|----------|--------|--------|
-| **Batch Timing** | "timeout per server" | "timeout per batch" | More efficient, prevents slow servers blocking others |
-| **Socket Listen** | After initialization complete | During initialization | Better for long-running servers |
-| **Status Output** | Server list with names | Categorized + uptime + duration | User feedback requested |
-| **Health Check Default** | 30s configurable | 30s hardcoded | Simpler, appropriate default |
-| **Initialization Output** | Log files only | Console + logs | Better UX for daemon start |
-| **Config Loading** | Assumed working | Required bug fix | Found existing issue |
-| **Async Framework** | Designed in proposal | Implemented with asyncio | Python standard, simple |
+| Aspect                    | Proposed                      | Actual                          | Reason                                                |
+| ------------------------- | ----------------------------- | ------------------------------- | ----------------------------------------------------- |
+| **Batch Timing**          | "timeout per server"          | "timeout per batch"             | More efficient, prevents slow servers blocking others |
+| **Socket Listen**         | After initialization complete | During initialization           | Better for long-running servers                       |
+| **Status Output**         | Server list with names        | Categorized + uptime + duration | User feedback requested                               |
+| **Health Check Default**  | 30s configurable              | 30s hardcoded                   | Simpler, appropriate default                          |
+| **Initialization Output** | Log files only                | Console + logs                  | Better UX for daemon start                            |
+| **Config Loading**        | Assumed working               | Required bug fix                | Found existing issue                                  |
+| **Async Framework**       | Designed in proposal          | Implemented with asyncio        | Python standard, simple                               |
 
 #### What Took Longer Than Expected ⏱️
 
@@ -768,25 +788,25 @@ A: Higher-priority config overrides lower-priority. Use `cllm-mcp config show` t
 
 ### Metrics
 
-| Metric | Target | Actual | Status |
-|--------|--------|--------|--------|
-| **Test Coverage** | >80% for ADR code | 18 unit tests + 132 total | ✅ Exceeded |
-| **Backward Compatibility** | 100% | 100% | ✅ Perfect |
-| **Parallel Startup** | Configurable batches | Implemented with `parallelInitialization` | ✅ Working |
-| **Health Monitoring** | Automatic restart | Every 30 seconds | ✅ Working |
-| **Initialization Time** | Fast (parallel) | 2 servers in 1.7s vs 2.1s sequential | ✅ ~20% improvement |
-| **User Feedback** | Clear logging | Console output + detailed logs | ✅ Exceeded |
+| Metric                     | Target               | Actual                                    | Status              |
+| -------------------------- | -------------------- | ----------------------------------------- | ------------------- |
+| **Test Coverage**          | >80% for ADR code    | 18 unit tests + 132 total                 | ✅ Exceeded         |
+| **Backward Compatibility** | 100%                 | 100%                                      | ✅ Perfect          |
+| **Parallel Startup**       | Configurable batches | Implemented with `parallelInitialization` | ✅ Working          |
+| **Health Monitoring**      | Automatic restart    | Every 30 seconds                          | ✅ Working          |
+| **Initialization Time**    | Fast (parallel)      | 2 servers in 1.7s vs 2.1s sequential      | ✅ ~20% improvement |
+| **User Feedback**          | Clear logging        | Console output + detailed logs            | ✅ Exceeded         |
 
 ### Risk Assessment
 
 #### Originally Identified Risks (from ADR)
 
-| Risk | Probability | Impact | Mitigation | Status |
-|------|-------------|--------|-----------|--------|
-| Memory usage (all servers running) | High | Medium | Optional flag, --no-auto-init | ✅ Implemented |
-| Startup time increase | Medium | Medium | Parallel initialization | ✅ Mitigated |
-| Crash propagation | High | High | onInitFailure policy | ✅ Mitigated |
-| Configuration complexity | Low | Low | Sensible defaults | ✅ Mitigated |
+| Risk                               | Probability | Impact | Mitigation                    | Status         |
+| ---------------------------------- | ----------- | ------ | ----------------------------- | -------------- |
+| Memory usage (all servers running) | High        | Medium | Optional flag, --no-auto-init | ✅ Implemented |
+| Startup time increase              | Medium      | Medium | Parallel initialization       | ✅ Mitigated   |
+| Crash propagation                  | High        | High   | onInitFailure policy          | ✅ Mitigated   |
+| Configuration complexity           | Low         | Low    | Sensible defaults             | ✅ Mitigated   |
 
 #### New Risks Discovered
 
@@ -798,6 +818,7 @@ A: Higher-priority config overrides lower-priority. Use `cllm-mcp config show` t
 ### Recommendations for Future Work
 
 1. **Type Annotations**
+
    ```python
    # Add to find_config_file() signature
    def find_config_file(...) -> Tuple[Optional[Path], List[str]]:

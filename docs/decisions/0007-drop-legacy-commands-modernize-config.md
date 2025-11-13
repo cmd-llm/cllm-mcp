@@ -13,18 +13,21 @@ The cllm-mcp project currently maintains backward compatibility with legacy comm
 Currently, users can run MCP tools in three ways:
 
 **1. Legacy Direct Python Scripts** (Pre-ADR-0003, deprecated):
+
 ```bash
 python mcp_cli.py list-tools <server>          # Direct MCP client
 python mcp_daemon.py daemon start              # Daemon manager
 ```
 
 **2. Modern Unified Command** (ADR-0003, recommended):
+
 ```bash
 cllm-mcp list-tools <server>
 cllm-mcp daemon start
 ```
 
 **3. Manual Installation (Not standardized)**:
+
 - Manual setup via `pip install -e .`
 - No standard installation mechanism
 - Users must manage entry points themselves
@@ -46,6 +49,7 @@ cllm-mcp daemon start
 ADR-0003 established unified command architecture; users have had time to migrate. Recent implementation of ADR-0004 (CLLM configuration standard) and ADR-0005 (daemon auto-initialization) are all built on modern `cllm_mcp/` package structure, not legacy scripts.
 
 **Current adoption metrics**:
+
 - README includes both legacy and modern approaches (confusing)
 - Test suite focuses on modern unified commands
 - All documentation examples favor `cllm-mcp` command
@@ -54,6 +58,7 @@ ADR-0003 established unified command architecture; users have had time to migrat
 ### Ecosystem Alignment
 
 CLLM ecosystem standard is to distribute via:
+
 1. Package installation via `pip` (or `uv`)
 2. Entry points defined in `pyproject.toml`
 3. Single command-line interface (standardized in `main.py`)
@@ -67,6 +72,7 @@ We will drop support for legacy direct Python script execution and fully moderni
 ### What's Being Removed
 
 **Immediate (v1.0+)**:
+
 - Remove execution of `python mcp_cli.py` as a user-facing command
 - Remove execution of `python mcp_daemon.py` as a user-facing command
 - Remove all documentation references to direct Python script execution
@@ -74,6 +80,7 @@ We will drop support for legacy direct Python script execution and fully moderni
 - Ensure no entry points in `pyproject.toml` for legacy scripts
 
 **Future (when code is refactored)**:
+
 - Migrate `mcp_cli.py` and `mcp_daemon.py` code into `cllm_mcp/` package modules
 - Remove these files from the repository entirely
 - Complete the modernization
@@ -87,13 +94,16 @@ cllm-mcp [command] [options]
 ```
 
 **Available through**:
+
 1. **Installed via pip/uv**:
+
    ```bash
    pip install cllm-mcp
    cllm-mcp list-tools <server>
    ```
 
 2. **Development mode**:
+
    ```bash
    uv run cllm-mcp list-tools <server>
    ```
@@ -122,12 +132,14 @@ mcp-daemon = "cllm_mcp.main:cli"
 Users currently relying on legacy scripts may have older configuration paths. With ADR-0004 already deployed, migration is straightforward:
 
 **Old paths (legacy scripts used)**:
+
 ```
 ~/.config/cllm-mcp/config.json    # Old XDG path
 /etc/cllm-mcp/config.json          # System-wide
 ```
 
 **New CLLM standard paths**:
+
 ```
 ~/.cllm/mcp-config.json            # Global
 ./.cllm/mcp-config.json            # Project
@@ -140,14 +152,14 @@ The modern `cllm-mcp` command already supports both via backward compatibility l
 
 The unified `cllm-mcp` command provides all functionality of legacy scripts:
 
-| Use Case | Legacy | Modern |
-|----------|--------|--------|
-| List tools | `python mcp_cli.py list-tools fs` | `cllm-mcp list-tools fs` |
-| Call tool | `python mcp_cli.py call-tool fs read /path` | `cllm-mcp call-tool fs read /path` |
-| Interactive | `python mcp_cli.py interact fs` | `cllm-mcp interact fs` |
-| Daemon start | `python mcp_daemon.py daemon start` | `cllm-mcp daemon start` |
-| Daemon stop | `python mcp_daemon.py daemon stop` | `cllm-mcp daemon stop` |
-| Daemon status | `python mcp_daemon.py daemon status` | `cllm-mcp daemon status` |
+| Use Case      | Legacy                                      | Modern                             |
+| ------------- | ------------------------------------------- | ---------------------------------- |
+| List tools    | `python mcp_cli.py list-tools fs`           | `cllm-mcp list-tools fs`           |
+| Call tool     | `python mcp_cli.py call-tool fs read /path` | `cllm-mcp call-tool fs read /path` |
+| Interactive   | `python mcp_cli.py interact fs`             | `cllm-mcp interact fs`             |
+| Daemon start  | `python mcp_daemon.py daemon start`         | `cllm-mcp daemon start`            |
+| Daemon stop   | `python mcp_daemon.py daemon stop`          | `cllm-mcp daemon stop`             |
+| Daemon status | `python mcp_daemon.py daemon status`        | `cllm-mcp daemon status`           |
 
 ## Consequences
 
@@ -185,22 +197,27 @@ The unified `cllm-mcp` command provides all functionality of legacy scripts:
 ## Alternatives Considered
 
 ### 1. Keep Legacy Scripts Indefinitely
+
 **Pros**: No breaking changes, no migration needed
 **Cons**: Perpetual maintenance burden, technical debt, confusing documentation, larger codebase
 
 ### 2. Auto-generate Shims from Modern Code
+
 **Pros**: Single source of truth
 **Cons**: Still creates confusion, wrapper overhead, doesn't solve root issue
 
 ### 3. Gradual Deprecation Only (No Removal)
+
 **Pros**: Never breaking, users can stay on legacy indefinitely
 **Cons**: Technical debt never resolved, ongoing maintenance forever, confuses new users
 
 ### 4. Provide Wrapper Scripts Without Installation
+
 ```bash
 #!/bin/bash
 exec python -m cllm_mcp "$@"
 ```
+
 **Pros**: Simpler than full removal, familiar entry point
 **Cons**: Still requires explanation, doesn't provide actual `cllm-mcp` command, users still confused
 
@@ -209,6 +226,7 @@ exec python -m cllm_mcp "$@"
 **Chosen**: Remove legacy scripts entirely, standardize on single modern entry point
 
 This approach:
+
 - **Eliminates technical debt**: No more duplicate code
 - **Aligns with CLLM ecosystem**: Standard distribution model
 - **Provides clear path forward**: No ambiguity for new users
@@ -218,6 +236,7 @@ This approach:
 - **Supports long-term sustainability**: Simpler codebase for contributions
 
 The migration is straightforward because:
+
 1. Modern `cllm-mcp` command provides 100% feature parity
 2. CLLM configuration (ADR-0004) already handles old config paths
 3. Clear CLI for installation: `pip install cllm-mcp`
@@ -228,16 +247,19 @@ The migration is straightforward because:
 ### Completed
 
 ✅ **Documentation Updates**
+
 - Updated README to remove legacy script references
 - Added ADR-0007 reference and migration notes
 - Created comprehensive MIGRATION.md guide
 
 ✅ **Configuration Changes**
+
 - Updated pyproject.toml to remove legacy scripts from coverage
 - Verified single entry point: `cllm-mcp = "cllm_mcp.main:main"`
 - No entry points defined for `mcp_cli` or `mcp_daemon`
 
 ✅ **User Communication**
+
 - Created MIGRATION.md with clear upgrade path
 - Updated README with installation instructions
 - Added migration guidance for all use cases
@@ -245,14 +267,13 @@ The migration is straightforward because:
 ### Internal Implementation Files
 
 The code from `mcp_cli.py` and `mcp_daemon.py` has been refactored into internal package modules:
+
 - `cllm_mcp/client.py` - MCP client implementation (formerly `mcp_cli.py`)
 - `cllm_mcp/daemon.py` - Daemon server implementation (formerly `mcp_daemon.py`)
 
 These are internal implementation modules used by `main.py` and not exposed to users. Root-level files no longer exist.
 
 **Refactoring Completed**: All legacy code is now properly organized within the `cllm_mcp/` package with clean relative imports.
-
-
 
 ## Related ADRs
 
@@ -296,6 +317,7 @@ A: Just update them to call `cllm-mcp` instead. See migration guide.
 
 **Q: Is there a wrapper I can use temporarily?**
 A: Yes, create a simple `mcp_cli.py` in your project:
+
 ```python
 #!/usr/bin/env python
 """Wrapper for legacy compatibility during migration"""

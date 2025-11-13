@@ -152,7 +152,9 @@ async def initialize_servers_async(
         batch_num = (i // parallel) + 1
         total_batches = (len(servers_to_start) + parallel - 1) // parallel
 
-        logger.debug(f"Starting batch {batch_num}/{total_batches} ({len(batch)} servers)")
+        logger.debug(
+            f"Starting batch {batch_num}/{total_batches} ({len(batch)} servers)"
+        )
 
         # Start batch servers concurrently
         tasks = []
@@ -160,9 +162,7 @@ async def initialize_servers_async(
             print(f"  Starting: {name}")
             logger.debug(f"  [{name}] Starting server...")
             tasks.append(
-                _start_server_with_timeout(
-                    daemon, name, server_config, init_timeout
-                )
+                _start_server_with_timeout(daemon, name, server_config, init_timeout)
             )
 
         # Run tasks with timeout
@@ -189,11 +189,11 @@ async def initialize_servers_async(
     # Process results
     for result in results:
         if result["success"]:
-            duration = result.get('duration', 0)
+            duration = result.get("duration", 0)
             print(f"  ✓ {result['name']} ready ({duration:.1f}s)")
             logger.info(f"[{result['name']}] Ready in {duration:.1f}s")
         else:
-            error = result.get('error', 'Unknown error')
+            error = result.get("error", "Unknown error")
             print(f"  ✗ {result['name']} failed: {error}")
             logger.error(f"[{result['name']}] Failed: {error}")
             failed_servers.append((result["name"], error))
@@ -226,7 +226,9 @@ async def initialize_servers_async(
     )
     if failed > 0:
         if optional_failed > 0:
-            logger.warning(f"  {optional_failed} optional server(s) failed (continuing)")
+            logger.warning(
+                f"  {optional_failed} optional server(s) failed (continuing)"
+            )
         if required_failures:
             logger.warning(f"  {len(required_failures)} required server(s) failed")
 
@@ -262,7 +264,9 @@ async def _start_server_with_timeout(
         # Start server in thread (sync operation)
         loop = asyncio.get_event_loop()
         result = await asyncio.wait_for(
-            loop.run_in_executor(None, lambda: daemon.start_server(name, command, auto_start=True)),
+            loop.run_in_executor(
+                None, lambda: daemon.start_server(name, command, auto_start=True)
+            ),
             timeout=timeout,
         )
 
@@ -314,7 +318,9 @@ class MCPDaemon:
         self.config_path = None
         try:
             # Try explicit path first, then auto-discover
-            config_file = config_path or find_config_file()[0]  # find_config_file returns tuple
+            config_file = (
+                config_path or find_config_file()[0]
+            )  # find_config_file returns tuple
             if config_file:
                 self.config = load_config(str(config_file))
                 errors = validate_config(self.config)
@@ -326,7 +332,9 @@ class MCPDaemon:
         except Exception as e:
             logger.warning(f"Failed to load configuration: {e}")
 
-    def start_server(self, name: str, command: str, auto_start: bool = False) -> Dict[str, Any]:
+    def start_server(
+        self, name: str, command: str, auto_start: bool = False
+    ) -> Dict[str, Any]:
         """
         Start and cache an MCP server.
 
@@ -481,7 +489,9 @@ class MCPDaemon:
                                         server_name, command, auto_start=True
                                     )
                                     if result.get("success"):
-                                        logger.info(f"[{server_name}] Restart successful")
+                                        logger.info(
+                                            f"[{server_name}] Restart successful"
+                                        )
                                     else:
                                         logger.error(
                                             f"[{server_name}] Restart failed: {result.get('error')}"
@@ -688,6 +698,7 @@ def daemon_start(args):
             # Catch any other unexpected errors
             logger.error(f"Unexpected error during initialization: {e}")
             import traceback
+
             traceback.print_exc()
             sys.exit(1)
 

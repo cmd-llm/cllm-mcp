@@ -134,15 +134,9 @@ def find_config_file(
             trace.append(f"[CONFIG] Checking deprecated path: {old_path}")
         if old_path.exists():
             if verbose:
-                trace.append(
-                    f"[CONFIG] ⚠ Found at deprecated location: {old_path}"
-                )
-                trace.append(
-                    f"[CONFIG] ⚠ WARNING: Old config locations are deprecated"
-                )
-                trace.append(
-                    f"[CONFIG] ⚠ Please migrate to ~/.cllm/mcp-config.json"
-                )
+                trace.append(f"[CONFIG] ⚠ Found at deprecated location: {old_path}")
+                trace.append("[CONFIG] ⚠ WARNING: Old config locations are deprecated"d")
+                trace.append("[CONFIG] ⚠ Please migrate to ~/.cllm/mcp-config.json"n")
             return old_path, trace
 
     if verbose:
@@ -242,13 +236,19 @@ def validate_config(config: Dict[str, Any]) -> List[str]:
             errors.append("'daemon' section must be a dictionary")
         else:
             # Validate daemon field types
-            if "socket" in daemon_config and not isinstance(daemon_config["socket"], str):
+            if "socket" in daemon_config and not isinstance(
+                daemon_config["socket"], str
+            ):
                 errors.append("'daemon.socket' must be a string")
 
-            if "timeout" in daemon_config and not isinstance(daemon_config["timeout"], (int, float)):
+            if "timeout" in daemon_config and not isinstance(
+                daemon_config["timeout"], (int, float)
+            ):
                 errors.append("'daemon.timeout' must be a number")
 
-            if "maxServers" in daemon_config and not isinstance(daemon_config["maxServers"], int):
+            if "maxServers" in daemon_config and not isinstance(
+                daemon_config["maxServers"], int
+            ):
                 errors.append("'daemon.maxServers' must be an integer")
 
             if "initializationTimeout" in daemon_config and not isinstance(
@@ -361,7 +361,7 @@ def list_servers(config: Dict[str, Any]) -> List[Dict[str, Any]]:
                 "description": server_config.get("description", ""),
                 "env": server_config.get("env", {}),
                 "autoStart": server_config.get("autoStart", True),  # ADR-0005
-                "optional": server_config.get("optional", False),   # ADR-0005
+                "optional": server_config.get("optional", False),  # ADR-0005
             }
         )
 
@@ -480,7 +480,7 @@ def cmd_config_validate(args):
 
 def cmd_config_show(args):
     """Command to show which configuration file is being used."""
-    verbose = getattr(args, "verbose", False)
+    getattr(args, "verbose", False)
 
     # Find config file (always verbose for this command)
     config_path = args.config
@@ -493,7 +493,7 @@ def cmd_config_show(args):
         print(msg)
 
     if found_path:
-        print(f"\n[CONFIG] Using configuration file:")
+        print("\n[CONFIG] Using configuration file:")
         print(f"  {found_path}")
 
         # Try to load and show info
@@ -503,26 +503,28 @@ def cmd_config_show(args):
 
             if not errors:
                 servers = list_servers(config)
-                print(f"\n[CONFIG] Configuration Status: ✓ Valid")
+                print("\n[CONFIG] Configuration Status: ✓ Valid"d")
                 print(f"[CONFIG] Servers configured: {len(servers)}")
                 if servers:
-                    print(f"[CONFIG] Available servers: {', '.join(s['name'] for s in servers)}")
+                    print(
+                        f"[CONFIG] Available servers: {', '.join(s['name'] for s in servers)}"
+                    )
             else:
-                print(f"\n[CONFIG] Configuration Status: ✗ Invalid")
+                print("\n[CONFIG] Configuration Status: ✗ Invalid"d")
                 for error in errors:
                     print(f"[CONFIG]   - {error}")
         except ConfigError as e:
-            print(f"\n[CONFIG] Configuration Status: ✗ Error")
+            print("\n[CONFIG] Configuration Status: ✗ Error"r")
             print(f"[CONFIG]   {e}")
     else:
-        print(f"\n[CONFIG] No configuration file found!")
-        print(f"[CONFIG] To create one, use:")
-        print(f"[CONFIG]   mkdir -p ~/.cllm")
-        print(f"[CONFIG]   cat > ~/.cllm/mcp-config.json << 'EOF'")
-        print(f"[CONFIG] {{")
-        print(f"[CONFIG]   \"mcpServers\": {{}}")
-        print(f"[CONFIG] }}")
-        print(f"[CONFIG] EOF")
+        print("\n[CONFIG] No configuration file found!")
+        print("[CONFIG] To create one, use:")
+        print("[CONFIG]   mkdir -p ~/.cllm")
+        print("[CONFIG]   cat > ~/.cllm/mcp-config.json << 'EOF'")
+        print("[CONFIG] {")
+        print('[CONFIG]   "mcpServers": {}')
+        print("[CONFIG] }")
+        print("[CONFIG] EOF")
 
 
 def cmd_config_migrate(args):
@@ -552,10 +554,10 @@ def cmd_config_migrate(args):
         print(f"  - {path}")
 
     if new_location.exists():
-        print(f"\n⚠ WARNING: New location already exists!")
+        print("\n⚠ WARNING: New location already exists!"!")
         print(f"  {new_location}")
-        print(f"\nPlease manually migrate your configuration.")
-        print(f"Do not overwrite the existing file.")
+        print("\nPlease manually migrate your configuration.")
+        print("Do not overwrite the existing file.")
         return
 
     # Ask for confirmation
@@ -576,17 +578,19 @@ def cmd_config_migrate(args):
         with open(new_location, "w") as f:
             f.write(config_data)
 
-        print(f"\n✓ Migrated successfully!")
+        print("\n✓ Migrated successfully!"!")
         print(f"  Source: {source}")
         print(f"  Target: {new_location}")
 
         if len(old_found) > 1:
             print(f"\n⚠ Found {len(old_found)} old configuration files.")
-            print(f"  Migrated from the first one.")
-            print(f"  Other locations:")
+            print("  Migrated from the first one.")
+            print("  Other locations:")
             for path in old_found[1:]:
                 print(f"    - {path}")
-            print(f"  You can safely remove these files after verifying migration was successful.")
+            print(
+                "  You can safely remove these files after verifying migration was successful."
+            )
 
     except Exception as e:
         print(f"\n✗ Migration failed: {e}", file=sys.stderr)

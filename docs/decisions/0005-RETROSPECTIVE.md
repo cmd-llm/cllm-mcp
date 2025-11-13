@@ -40,13 +40,13 @@ ADR-0005 was successfully implemented with all proposed features delivered and s
 
 ### 📊 Metrics
 
-| Metric | Result | Status |
-|--------|--------|--------|
-| **Implementation Time** | 1 day | ⚡ Fast |
-| **Test Coverage** | 18 unit tests + 132 total | 📈 High |
-| **Backward Compatibility** | 100% | ✅ Perfect |
-| **Initialization Speed** | 20% faster with parallelism | 🚀 Improved |
-| **Regressions** | 0 | ✅ None |
+| Metric                     | Result                      | Status      |
+| -------------------------- | --------------------------- | ----------- |
+| **Implementation Time**    | 1 day                       | ⚡ Fast     |
+| **Test Coverage**          | 18 unit tests + 132 total   | 📈 High     |
+| **Backward Compatibility** | 100%                        | ✅ Perfect  |
+| **Initialization Speed**   | 20% faster with parallelism | 🚀 Improved |
+| **Regressions**            | 0                           | ✅ None     |
 
 ---
 
@@ -54,13 +54,13 @@ ADR-0005 was successfully implemented with all proposed features delivered and s
 
 ### What Changed
 
-| Aspect | Proposed | Actual | Reason |
-|--------|----------|--------|--------|
-| **Batch Timeout** | Per-server | Per-batch | More efficient |
-| **Status Output** | Names only | Names + duration + category | Better UX |
-| **Config Loading** | Assumed working | Required bug fix | Found pre-existing issue |
-| **Health Check** | 30s configurable | 30s hardcoded | Simpler, appropriate default |
-| **Output Method** | Logs only | Console + logs | Immediate user feedback |
+| Aspect             | Proposed         | Actual                      | Reason                       |
+| ------------------ | ---------------- | --------------------------- | ---------------------------- |
+| **Batch Timeout**  | Per-server       | Per-batch                   | More efficient               |
+| **Status Output**  | Names only       | Names + duration + category | Better UX                    |
+| **Config Loading** | Assumed working  | Required bug fix            | Found pre-existing issue     |
+| **Health Check**   | 30s configurable | 30s hardcoded               | Simpler, appropriate default |
+| **Output Method**  | Logs only        | Console + logs              | Immediate user feedback      |
 
 ### What Stayed the Same
 
@@ -93,38 +93,43 @@ ADR-0005 was successfully implemented with all proposed features delivered and s
 
 All identified risks were successfully mitigated:
 
-| Risk | Mitigation | Verified |
-|------|-----------|----------|
-| Memory usage | `--no-auto-init` flag, optional servers | ✅ Working |
-| Startup time | Parallel initialization | ✅ 20% improvement |
-| Crash propagation | `onInitFailure` policy | ✅ Tested |
-| Config complexity | Sensible defaults | ✅ Defaults work |
+| Risk              | Mitigation                              | Verified           |
+| ----------------- | --------------------------------------- | ------------------ |
+| Memory usage      | `--no-auto-init` flag, optional servers | ✅ Working         |
+| Startup time      | Parallel initialization                 | ✅ 20% improvement |
+| Crash propagation | `onInitFailure` policy                  | ✅ Tested          |
+| Config complexity | Sensible defaults                       | ✅ Defaults work   |
 
 ---
 
 ## Key Learnings 📚
 
 ### 1. Test Early, Test Often
+
 - Writing tests before full implementation caught edge cases
 - 18 tests for initialization alone gave high confidence
 - Config loading bug would have been caught by integration tests
 
 ### 2. User Experience Matters
+
 - Initial implementation worked but lacked visibility
 - Adding "Starting: server_name" output was critical improvement
 - CLI should give immediate feedback during startup
 
 ### 3. Type Hints Prevent Bugs
+
 - `find_config_file()` returning tuple was easily overlooked
 - Type hints would have made this obvious: `-> Tuple[Optional[Path], List[str]]`
 - Recommendation: Add type hints to all public functions
 
 ### 4. Asyncio is the Right Tool
+
 - Simplified parallel execution vs thread pools
 - `asyncio.wait_for()` makes timeout handling clean
 - No callback hell or complex concurrency management
 
 ### 5. Simple Solutions Win
+
 - Health monitoring: just a background thread
 - No need for complex task scheduling systems
 - Periodic checks every 30 seconds is perfect for this use case
@@ -134,11 +139,13 @@ All identified risks were successfully mitigated:
 ## Discovered Issues
 
 ### Pre-Existing (Fixed)
+
 - `find_config_file()` return type not obvious from usage
 - Configuration loading had silent failure mode
 - **Fix Applied**: Now properly logs and returns tuple correctly
 
 ### New Issues
+
 - ✅ None discovered during implementation
 
 ---
@@ -146,10 +153,12 @@ All identified risks were successfully mitigated:
 ## Future Improvements
 
 ### Short-term
+
 1. Add type hints to `find_config_file()` and related functions
 2. Consider per-server initialization timeout (not just batch)
 
 ### Medium-term
+
 1. **Resource Limits** (new ADR)
    - Per-server memory limits
    - Per-server CPU limits
@@ -159,6 +168,7 @@ All identified risks were successfully mitigated:
    - Best of both worlds: speed + efficiency
 
 ### Long-term
+
 1. **Metrics Export**
    - Prometheus-style metrics for monitoring
    - Server uptime and restart frequency tracking
@@ -172,12 +182,14 @@ All identified risks were successfully mitigated:
 ## Recommendations
 
 ### For Future ADRs
+
 1. ✅ Test Early - Write tests alongside ADR
 2. ✅ Consider Edge Cases - Like tuple returns
 3. ✅ User Feedback - Get real users testing before finalization
 4. ✅ Type Hints - Use them in ADR pseudocode
 
 ### For This Feature
+
 1. ✅ Monitor in Production - Watch for crash patterns
 2. ✅ Collect Metrics - Track initialization times
 3. ✅ User Feedback - Iterate on output/UX

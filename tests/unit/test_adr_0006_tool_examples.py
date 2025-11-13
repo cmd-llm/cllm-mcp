@@ -1,8 +1,9 @@
 """Unit tests for ADR-0006: Tool invocation example generation."""
 
-import pytest
 import json
-from mcp_cli import generate_placeholder, generate_json_example
+
+import pytest
+from mcp_cli import generate_json_example, generate_placeholder
 
 
 class TestGeneratePlaceholder:
@@ -59,10 +60,7 @@ class TestGeneratePlaceholder:
         """Test that simple object generates nested structure with placeholders."""
         prop_info = {
             "type": "object",
-            "properties": {
-                "name": {"type": "string"},
-                "age": {"type": "integer"}
-            }
+            "properties": {"name": {"type": "string"}, "age": {"type": "integer"}},
         }
         result = generate_placeholder(prop_info)
         assert isinstance(result, dict)
@@ -107,11 +105,8 @@ class TestGeneratePlaceholder:
             "type": "array",
             "items": {
                 "type": "object",
-                "properties": {
-                    "id": {"type": "integer"},
-                    "name": {"type": "string"}
-                }
-            }
+                "properties": {"id": {"type": "integer"}, "name": {"type": "string"}},
+            },
         }
         result = generate_placeholder(prop_info)
         assert isinstance(result, list)
@@ -127,10 +122,8 @@ class TestGenerateJsonExample:
         """Test example generation for simple string property."""
         schema = {
             "type": "object",
-            "properties": {
-                "path": {"type": "string", "description": "File path"}
-            },
-            "required": ["path"]
+            "properties": {"path": {"type": "string", "description": "File path"}},
+            "required": ["path"],
         }
         result = generate_json_example(schema)
         assert result == {"path": "<string>"}
@@ -143,16 +136,12 @@ class TestGenerateJsonExample:
             "properties": {
                 "path": {"type": "string"},
                 "content": {"type": "string"},
-                "overwrite": {"type": "boolean"}
+                "overwrite": {"type": "boolean"},
             },
-            "required": ["path", "content"]
+            "required": ["path", "content"],
         }
         result = generate_json_example(schema)
-        assert result == {
-            "path": "<string>",
-            "content": "<string>",
-            "overwrite": True
-        }
+        assert result == {"path": "<string>", "content": "<string>", "overwrite": True}
 
     @pytest.mark.unit
     def test_mixed_types(self):
@@ -163,15 +152,15 @@ class TestGenerateJsonExample:
                 "name": {"type": "string"},
                 "age": {"type": "integer"},
                 "score": {"type": "number"},
-                "active": {"type": "boolean"}
-            }
+                "active": {"type": "boolean"},
+            },
         }
         result = generate_json_example(schema)
         assert result == {
             "name": "<string>",
             "age": "<integer>",
             "score": "<number>",
-            "active": True
+            "active": True,
         }
 
     @pytest.mark.unit
@@ -179,9 +168,7 @@ class TestGenerateJsonExample:
         """Test example generation for array property."""
         schema = {
             "type": "object",
-            "properties": {
-                "tags": {"type": "array", "items": {"type": "string"}}
-            }
+            "properties": {"tags": {"type": "array", "items": {"type": "string"}}},
         }
         result = generate_json_example(schema)
         assert "tags" in result
@@ -198,10 +185,10 @@ class TestGenerateJsonExample:
                     "type": "object",
                     "properties": {
                         "author": {"type": "string"},
-                        "version": {"type": "integer"}
-                    }
+                        "version": {"type": "integer"},
+                    },
                 }
-            }
+            },
         }
         result = generate_json_example(schema)
         assert isinstance(result["metadata"], dict)
@@ -233,14 +220,11 @@ class TestGenerateJsonExample:
                     "type": "object",
                     "properties": {
                         "type": {"type": "string"},
-                        "limit": {"type": "integer"}
-                    }
+                        "limit": {"type": "integer"},
+                    },
                 },
-                "options": {
-                    "type": "array",
-                    "items": {"type": "string"}
-                }
-            }
+                "options": {"type": "array", "items": {"type": "string"}},
+            },
         }
         result = generate_json_example(schema)
         assert result["query"] == "<string>"
@@ -259,8 +243,8 @@ class TestGenerateJsonExample:
                 "name": {"type": "string"},
                 "count": {"type": "integer"},
                 "active": {"type": "boolean"},
-                "tags": {"type": "array", "items": {"type": "string"}}
-            }
+                "tags": {"type": "array", "items": {"type": "string"}},
+            },
         }
         result = generate_json_example(schema)
         # Should not raise an exception
@@ -273,12 +257,9 @@ class TestGenerateJsonExample:
         schema = {
             "type": "object",
             "properties": {
-                "timezone": {
-                    "type": "string",
-                    "description": "IANA timezone name"
-                }
+                "timezone": {"type": "string", "description": "IANA timezone name"}
             },
-            "required": ["timezone"]
+            "required": ["timezone"],
         }
         result = generate_json_example(schema)
         assert result == {"timezone": "<string>"}
@@ -291,13 +272,13 @@ class TestGenerateJsonExample:
             "properties": {
                 "source_timezone": {"type": "string"},
                 "time": {"type": "string"},
-                "target_timezone": {"type": "string"}
+                "target_timezone": {"type": "string"},
             },
-            "required": ["source_timezone", "time", "target_timezone"]
+            "required": ["source_timezone", "time", "target_timezone"],
         }
         result = generate_json_example(schema)
         assert result == {
             "source_timezone": "<string>",
             "time": "<string>",
-            "target_timezone": "<string>"
+            "target_timezone": "<string>",
         }

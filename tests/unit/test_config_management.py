@@ -1,9 +1,8 @@
 """Unit tests for configuration management (cllm_mcp/config.py)."""
 
-import json
-import os
-import pytest
 from pathlib import Path
+
+import pytest
 
 
 class TestCLLMConfigPrecedence:
@@ -95,6 +94,7 @@ class TestConfigLoading:
     def test_load_config_from_explicit_path(self, config_file):
         """Test loading config from explicitly specified path."""
         from cllm_mcp.config import load_config
+
         config = load_config(config_file)
         assert "mcpServers" in config
         assert "time" in config["mcpServers"]

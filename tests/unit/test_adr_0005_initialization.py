@@ -9,23 +9,23 @@ This test module covers:
 5. Status reporting with auto-started server info
 """
 
-import asyncio
-import pytest
-import sys
 import os
-from pathlib import Path
-from unittest.mock import Mock, MagicMock, patch, AsyncMock
+import sys
+from unittest.mock import MagicMock, patch
+
+import pytest
 
 # Add parent to path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 
-from cllm_mcp.config import validate_config
 from mcp_daemon import (
     InitializationResult,
-    initialize_servers_async,
     MCPDaemon,
     build_server_command,
+    initialize_servers_async,
 )
+
+from cllm_mcp.config import validate_config
 
 
 class TestConfigurationValidation:
@@ -230,7 +230,7 @@ class TestInitializationLogic:
         with patch.object(daemon, "start_server") as mock_start:
             mock_start.return_value = {"success": True}
 
-            result = await initialize_servers_async(daemon, config)
+            await initialize_servers_async(daemon, config)
 
             # Should try to start the server since autoStart defaults to True
             assert mock_start.called
@@ -299,9 +299,7 @@ class TestHealthMonitoring:
         """Test that health monitoring detects when a server crashes."""
         daemon = MCPDaemon()
         daemon.config = {
-            "mcpServers": {
-                "test": {"command": "test-cmd", "autoStart": True}
-            }
+            "mcpServers": {"test": {"command": "test-cmd", "autoStart": True}}
         }
 
         # Simulate running server
@@ -320,7 +318,7 @@ class TestHealthMonitoring:
                 # This is what health_monitoring does
                 server_config = daemon.config["mcpServers"]["test"]
                 command = f"{server_config['command']}"
-                result = daemon.start_server("test", command, auto_start=True)
+                daemon.start_server("test", command, auto_start=True)
 
             assert mock_start.called
 
@@ -342,9 +340,7 @@ class TestConfigurationDefaults:
         from cllm_mcp.config import list_servers
 
         config = {
-            "mcpServers": {
-                "server": {"command": "test-cmd"}  # No autoStart specified
-            }
+            "mcpServers": {"server": {"command": "test-cmd"}}  # No autoStart specified
         }
 
         servers = list_servers(config)
@@ -357,9 +353,7 @@ class TestConfigurationDefaults:
         from cllm_mcp.config import list_servers
 
         config = {
-            "mcpServers": {
-                "server": {"command": "test-cmd"}  # No optional specified
-            }
+            "mcpServers": {"server": {"command": "test-cmd"}}  # No optional specified
         }
 
         servers = list_servers(config)

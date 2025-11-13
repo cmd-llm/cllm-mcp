@@ -5,6 +5,7 @@ A high-performance, zero-dependency Python CLI utility for invoking MCP (Model C
 ## The Problem
 
 When using MCP servers with LLMs, tool definitions consume significant tokens:
+
 - **Token cost per server**: 2,000-5,000 tokens for full tool definitions and schemas
 - **Repetitive invocation**: Multiple tool calls require constant LLM reasoning overhead
 - **Inefficiency**: Scripted/deterministic tasks still consume tokens for MCP protocol handling
@@ -76,6 +77,7 @@ cllm-mcp config show       # Display full configuration
 ### Smart Daemon Detection
 
 The `cllm-mcp` command automatically:
+
 1. Detects if daemon is running (1s timeout check)
 2. Uses daemon if available for faster performance
 3. Falls back to direct mode if daemon unavailable (graceful degradation)
@@ -92,6 +94,7 @@ cllm_mcp/                    # Package structure
 ```
 
 **Architecture Decisions**:
+
 - **ADR-0003**: Unified daemon/client command architecture
 - **ADR-0004**: CLLM-style configuration with hierarchical overrides
 - **ADR-0005**: Auto-initialization of configured servers on daemon startup
@@ -191,6 +194,7 @@ Configure servers once, reference them by name:
 #### 1. Create Configuration
 
 Configuration files are resolved in this order (highest priority wins):
+
 1. CLI argument: `cllm-mcp --config /path/to/config.json`
 2. Environment variable: `CLLM_MCP_CONFIG=/path/to/config.json`
 3. Current directory: `./mcp-config.json`
@@ -422,14 +426,14 @@ Configuration uses CLLM-style hierarchy. Server definitions go in `.cllm/mcp-con
 
 ### Server Configuration Fields
 
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `command` | string | Yes | Executable to run (e.g., `npx`, `python`, `uvx`) |
-| `args` | array | Yes | Command-line arguments as array |
-| `description` | string | No | Human-readable server description |
-| `env` | object | No | Environment variables to set (e.g., API keys) |
-| `autoStart` | boolean | No | Auto-start when daemon launches (default: false) |
-| `optional` | boolean | No | Don't fail daemon startup if server fails (default: false) |
+| Field         | Type    | Required | Description                                                |
+| ------------- | ------- | -------- | ---------------------------------------------------------- |
+| `command`     | string  | Yes      | Executable to run (e.g., `npx`, `python`, `uvx`)           |
+| `args`        | array   | Yes      | Command-line arguments as array                            |
+| `description` | string  | No       | Human-readable server description                          |
+| `env`         | object  | No       | Environment variables to set (e.g., API keys)              |
+| `autoStart`   | boolean | No       | Auto-start when daemon launches (default: false)           |
+| `optional`    | boolean | No       | Don't fail daemon startup if server fails (default: false) |
 
 ### Configuration Resolution (ADR-0004)
 
@@ -652,11 +656,11 @@ cllm-mcp daemon stop
 
 ### Performance Comparison
 
-| Scenario | Direct Mode | Daemon Mode | Speedup |
-|----------|-------------|-------------|---------|
-| Single call | ~200ms | ~200ms | 1x |
-| 10 calls | ~2000ms | ~100-200ms | 10-20x |
-| 100 calls | ~20000ms | ~500-1000ms | 20-40x |
+| Scenario    | Direct Mode | Daemon Mode | Speedup |
+| ----------- | ----------- | ----------- | ------- |
+| Single call | ~200ms      | ~200ms      | 1x      |
+| 10 calls    | ~2000ms     | ~100-200ms  | 10-20x  |
+| 100 calls   | ~20000ms    | ~500-1000ms | 20-40x  |
 
 ### Detailed Daemon Management
 
@@ -690,14 +694,14 @@ When daemon starts, it automatically initializes servers marked with `autoStart:
     "filesystem": {
       "command": "npx",
       "args": ["@modelcontextprotocol/server-filesystem", "/tmp"],
-      "autoStart": true,          // ← Starts automatically
-      "optional": false           // ← Daemon startup fails if this fails
+      "autoStart": true, // ← Starts automatically
+      "optional": false // ← Daemon startup fails if this fails
     },
     "github": {
       "command": "npx",
       "args": ["@modelcontextprotocol/server-github"],
-      "autoStart": false,         // ← Manual start only
-      "optional": true            // ← Won't fail daemon startup if fails
+      "autoStart": false, // ← Manual start only
+      "optional": true // ← Won't fail daemon startup if fails
     }
   }
 }
@@ -739,6 +743,7 @@ cllm-mcp call-tool filesystem read_file '{"path": "/tmp/test.txt"}'
 ### When to Use Daemon Mode
 
 ✅ **Use Daemon Mode When:**
+
 - Making multiple MCP tool calls (3+)
 - Batch processing files or data
 - Performance is critical
@@ -746,6 +751,7 @@ cllm-mcp call-tool filesystem read_file '{"path": "/tmp/test.txt"}'
 - Script can manage daemon lifecycle
 
 ❌ **Skip Daemon Mode When:**
+
 - Single one-off tool call
 - Running in extremely restricted environments
 - Cannot manage daemon lifecycle (e.g., serverless functions)
@@ -844,6 +850,7 @@ The `examples/` directory contains working scripts demonstrating cllm-mcp:
 - **README.md** - Detailed examples guide
 
 Run examples with:
+
 ```bash
 cd examples
 ./quick-datetime-test.sh

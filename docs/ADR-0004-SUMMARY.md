@@ -44,35 +44,39 @@ Adopt CLLM's configuration precedence (lowest to highest priority):
 
 ## Configuration Locations
 
-| Location | File Name | Purpose | Checked First | Example |
-|----------|-----------|---------|---------------|---------|
-| Home | `~/.cllm/mcp-config.json` | Global defaults | 1st (lowest priority) | User's preferred servers |
-| Project | `./.cllm/mcp-config.json` | Project-specific | 2nd | Project-specific server configs |
-| CWD | `./mcp-config.json` | Current directory | 3rd | Temporary overrides |
-| Env Vars | `CLLM_MCP_*` | Environment | 4th | CI/CD, containerized |
-| CLI | `--config` | Command-line | 5th (highest) | Explicit overrides |
+| Location | File Name                 | Purpose           | Checked First         | Example                         |
+| -------- | ------------------------- | ----------------- | --------------------- | ------------------------------- |
+| Home     | `~/.cllm/mcp-config.json` | Global defaults   | 1st (lowest priority) | User's preferred servers        |
+| Project  | `./.cllm/mcp-config.json` | Project-specific  | 2nd                   | Project-specific server configs |
+| CWD      | `./mcp-config.json`       | Current directory | 3rd                   | Temporary overrides             |
+| Env Vars | `CLLM_MCP_*`              | Environment       | 4th                   | CI/CD, containerized            |
+| CLI      | `--config`                | Command-line      | 5th (highest)         | Explicit overrides              |
 
 ## Implementation Plan
 
 ### Phase 1: Foundation (Weeks 1-2)
+
 - Update configuration search algorithm in `config.py`
 - Add `.cllm` folder support
 - Implement environment variable parsing
 - Add verbose configuration tracing
 
 ### Phase 2: Tooling (Weeks 3-4)
+
 - `cllm-mcp config show` - Display active configuration
 - `cllm-mcp config migrate` - Automated migration tool
 - Deprecation warnings for old paths
 - Migration guide documentation
 
 ### Phase 3: Documentation (Week 5)
+
 - Update README
 - Create migration guide
 - Document environment variables
 - Provide example configurations
 
 ### Phase 4: Cleanup (Year 2+)
+
 - Remove backward compatibility after deprecation period
 - Archive migration tools
 
@@ -146,19 +150,23 @@ $ cllm-mcp --verbose list-tools time
 ## Migration Path
 
 **Year 1**: Old configuration paths still work (with deprecation warnings)
+
 - `~/.config/cllm-mcp/config.json` (deprecated)
 - `/etc/cllm-mcp/config.json` (deprecated)
 
 **Year 2**: Warnings become more prominent
+
 - Provide automated `cllm-mcp config migrate` tool
 - Update all documentation
 
 **Year 3+**: Old paths no longer supported
+
 - Users must use new `.cllm` structure
 
 ## Design Rationale
 
 This approach was chosen because it:
+
 1. Aligns with established CLLM ecosystem conventions
 2. Follows patterns from Terraform, Docker, and similar tools
 3. Provides flexibility for different deployment scenarios
