@@ -281,6 +281,67 @@ def daemon_call_tool(
     return call_response.get("result", {})
 
 
+def generate_placeholder(prop_info: dict) -> any:
+    """
+    Generate appropriate placeholder for a property based on its type.
+
+    Args:
+        prop_info: Property schema info with type and structure
+
+    Returns:
+        Placeholder value or structure representing the type
+    """
+    prop_type = prop_info.get("type", "string")
+
+    if prop_type == "string":
+        return "<string>"
+    elif prop_type == "number":
+        return "<number>"
+    elif prop_type == "integer":
+        return "<integer>"
+    elif prop_type == "boolean":
+        return True
+    elif prop_type == "array":
+        item_placeholder = generate_placeholder(prop_info.get("items", {}))
+        return [item_placeholder, item_placeholder]
+    elif prop_type == "object":
+        # For nested objects, show the structure with type placeholders
+        nested_props = prop_info.get("properties", {})
+        if nested_props:
+            nested_example = {}
+            for key, val in nested_props.items():
+                nested_example[key] = generate_placeholder(val)
+            return nested_example
+        else:
+            return {"<string>": "<string>"}
+    else:
+        return f"<{prop_type}>"
+
+
+def generate_json_example(schema: dict) -> dict:
+    """
+    Generate a JSON example object with type-based placeholders from schema.
+
+    Args:
+        schema: The tool's inputSchema
+
+    Returns:
+        Dict with placeholder values based on type
+    """
+    if not schema:
+        return {}
+
+    properties = schema.get("properties", {})
+    if not properties:
+        return {}
+
+    example = {}
+    for prop_name, prop_info in properties.items():
+        example[prop_name] = generate_placeholder(prop_info)
+
+    return example
+
+
 def cmd_list_tools(args):
     """Command to list all available tools."""
     if args.use_daemon:
@@ -307,9 +368,19 @@ def cmd_list_tools(args):
         for tool in tools:
             print(f"  • {tool['name']}")
             if "description" in tool:
-                print(f"    {tool['description']}")
+                print(f"    {tool['description']}\n")
             if "inputSchema" in tool:
-                print(f"    Parameters: {json.dumps(tool['inputSchema'], indent=6)}")
+                schema = tool["inputSchema"]
+                # Generate and show example
+                example = generate_json_example(schema)
+                if example:
+                    example_json = json.dumps(example)
+                    print("    Example:")
+                    print(f"      cllm-mcp call-tool {args.server_command} {tool['name']} '{example_json}'")
+                else:
+                    # For tools with no parameters
+                    print("    Example:")
+                    print(f"      cllm-mcp call-tool {args.server_command} {tool['name']} '{{}}'")
             print()
 
 
