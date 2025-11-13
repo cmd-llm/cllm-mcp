@@ -22,10 +22,7 @@ import os
 import sys
 from typing import Any, Dict
 
-# Import handlers from existing modules
-sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
-
-from cllm_mcp.config import (
+from .config import (
     ConfigError,
     cmd_config_list,
     cmd_config_migrate,
@@ -36,16 +33,16 @@ from cllm_mcp.config import (
     resolve_server_ref,
     validate_config,
 )
-from cllm_mcp.daemon_utils import get_daemon_socket_path, should_use_daemon
-from cllm_mcp.socket_utils import get_daemon_config
-from mcp_cli import (
+from .daemon_utils import get_daemon_socket_path, should_use_daemon
+from .socket_utils import get_daemon_config
+from .client import (
     cmd_call_tool,
     cmd_interactive,
     cmd_list_tools,
     daemon_list_all_tools,
     generate_json_example,
 )
-from mcp_daemon import daemon_start, daemon_status, daemon_stop
+from .daemon import daemon_start, daemon_status, daemon_stop
 
 
 def _display_all_daemon_tools(
@@ -82,7 +79,7 @@ def _display_all_daemon_tools(
                         full_command = command
                         if args:
                             full_command = f"{command} {' '.join(args)}"
-                        # Compute the server ID hash (same as mcp_cli.get_server_id)
+                        # Compute the server ID hash (MD5 of command)
                         server_id = hashlib.md5(full_command.encode()).hexdigest()[:12]
                         if server_id in servers:
                             id_to_name[server_id] = server_name

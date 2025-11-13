@@ -1,25 +1,26 @@
-#!/usr/bin/env python3
 """
-MCP CLI - A command-line utility to make MCP tool calls without an LLM
+MCP Client - Core client for MCP tool invocation
 
-This utility allows bash scripts to invoke MCP tools directly, reducing the need
-to load tool definitions into an LLM's context window.
+This module provides the MCP client implementation that allows bash scripts
+to invoke MCP tools directly, reducing the need to load tool definitions
+into an LLM's context window.
+
+This module is internal to cllm-mcp and is accessed via the unified cllm-mcp command.
 
 Usage:
-    mcp_cli.py list-tools <server_command>
-    mcp_cli.py call-tool <server_command> <tool_name> <json_params>
-    mcp_cli.py interactive <server_command>
+    cllm-mcp list-tools <server_name>
+    cllm-mcp call-tool <server_name> <tool_name> <json_params>
+    cllm-mcp interactive <server_name>
 
 Examples:
-    # List all available tools from a server
-    ./mcp_cli.py list-tools "npx -y @modelcontextprotocol/server-filesystem /tmp"
+    # List all available tools from a configured server
+    cllm-mcp list-tools filesystem
 
     # Call a specific tool with parameters
-    ./mcp_cli.py call-tool "npx -y @modelcontextprotocol/server-filesystem /tmp" \
-        read_file '{"path": "/tmp/test.txt"}'
+    cllm-mcp call-tool filesystem read-file '{"path": "/tmp/test.txt"}'
 
     # Interactive mode for exploring tools
-    ./mcp_cli.py interactive "npx -y @modelcontextprotocol/server-filesystem /tmp"
+    cllm-mcp interactive filesystem
 """
 
 import argparse
@@ -31,9 +32,7 @@ import subprocess
 import sys
 from typing import Any, Dict, List, Optional
 
-# Add parent directory to path for imports from root
-sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
-from cllm_mcp.socket_utils import DAEMON_TOOL_TIMEOUT, SocketClient
+from .socket_utils import DAEMON_TOOL_TIMEOUT, SocketClient
 
 
 class MCPClient:

@@ -68,7 +68,7 @@ asyncio_mode = "auto"
 
 # Coverage options
 [tool.coverage.run]
-source = ["cllm_mcp", "mcp_cli", "mcp_daemon"]
+source = ["cllm_mcp"]
 branch = true
 omit = ["*/tests/*", "*/test_*.py", "*/__pycache__/*"]
 

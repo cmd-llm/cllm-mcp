@@ -1,25 +1,28 @@
-#!/usr/bin/env python3
 """
 MCP Daemon - Persistent MCP server manager
 
 This daemon keeps MCP servers running to avoid process startup overhead.
 It uses Unix domain sockets for fast IPC communication.
 
+This module is internal to cllm-mcp and is accessed via the unified cllm-mcp command.
+
 Usage:
-    mcp_daemon.py start [--socket PATH]
-    mcp_daemon.py stop [--socket PATH]
-    mcp_daemon.py status [--socket PATH]
+    cllm-mcp daemon start [--socket PATH]
+    cllm-mcp daemon stop [--socket PATH]
+    cllm-mcp daemon status [--socket PATH]
 
 Example:
     # Start the daemon
-    ./mcp_daemon.py start
+    cllm-mcp daemon start
 
-    # Use mcp_cli.py with daemon
-    ./mcp_cli.py call-tool --use-daemon "npx -y @modelcontextprotocol/server-filesystem /tmp" \
-        read_file '{"path": "/tmp/test.txt"}'
+    # Use daemon for fast tool calls
+    cllm-mcp call-tool filesystem read-file '{"path": "/tmp/test.txt"}'
+
+    # Check daemon status
+    cllm-mcp daemon status
 
     # Stop the daemon
-    ./mcp_daemon.py stop
+    cllm-mcp daemon stop
 """
 
 import argparse
@@ -35,12 +38,9 @@ import time
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
-from mcp_cli import MCPClient
-
-# Add parent directory to path for imports
-sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
-from cllm_mcp.config import find_config_file, load_config, validate_config
-from cllm_mcp.socket_utils import DAEMON_CTRL_TIMEOUT, SocketClient
+from .client import MCPClient
+from .config import find_config_file, load_config, validate_config
+from .socket_utils import DAEMON_CTRL_TIMEOUT, SocketClient
 
 # Configure logging for ADR-0005 initialization
 logging.basicConfig(
@@ -658,7 +658,7 @@ def daemon_start(args):
             sock.connect(socket_path)
             sock.close()
             print(f"Error: Daemon already running at {socket_path}", file=sys.stderr)
-            print("Use 'mcp_daemon.py stop' to stop it first", file=sys.stderr)
+            print("Use 'cllm-mcp daemon stop' to stop it first", file=sys.stderr)
             sys.exit(1)
         except (ConnectionRefusedError, FileNotFoundError):
             # Socket exists but nothing listening, clean it up

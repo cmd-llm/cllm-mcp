@@ -28,13 +28,13 @@ When using MCP servers with LLMs, tool definitions consume significant tokens:
          │ calls bash script
          ▼
 ┌─────────────────┐
-│  Bash Wrapper   │
-│   (mcp-*.sh)    │
+│  cllm-mcp CLI   │
+│   (command)     │
 └────────┬────────┘
          │ invokes
          ▼
 ┌─────────────────┐
-│   mcp_cli.py    │ ◄─── MCP Client
+│   MCP Client    │ ◄─── Core Implementation
 └────────┬────────┘
          │ JSON-RPC over stdio
          ▼
@@ -81,68 +81,35 @@ The `cllm-mcp` command automatically:
 3. Falls back to direct mode if daemon unavailable (graceful degradation)
 4. Works identically in both modes - no code changes needed
 
-### Legacy Commands (Backward Compatible)
-
-For backward compatibility, the legacy entry points still work:
-
-```bash
-# Legacy direct client
-python mcp_cli.py list-tools "..."
-python mcp_cli.py call-tool "..." tool_name '{...}'
-
-# Legacy daemon (deprecated)
-python mcp_daemon.py start
-python mcp_daemon.py stop
-python mcp_daemon.py status
-```
-
-**Note**: New projects should use `cllm-mcp` command. Legacy commands are maintained for existing scripts.
-
 ### Module Architecture
 
 ```
-cllm_mcp/                    # Modern package structure
+cllm_mcp/                    # Package structure
 ├── main.py                  # Unified command dispatcher (entry point)
 ├── config.py                # Configuration management (ADR-0004)
 ├── daemon_utils.py          # Daemon detection & socket path resolution
 └── socket_utils.py          # Shared socket communication utilities
-
-Root-level (legacy, for backward compatibility)
-├── mcp_cli.py               # Direct MCP client implementation
-└── mcp_daemon.py            # Daemon server implementation
 ```
 
 **Architecture Decisions**:
 - **ADR-0003**: Unified daemon/client command architecture
 - **ADR-0004**: CLLM-style configuration with hierarchical overrides
 - **ADR-0005**: Auto-initialization of configured servers on daemon startup
+- **ADR-0007**: Dropped legacy Python script entry points for modern `cllm-mcp` command
 
-## Components
+## Core Features
 
-### 1. Core MCP Client (`mcp_cli.py`)
+The `cllm-mcp` command provides all functionality needed for MCP server interaction:
 
-Python-based MCP client that communicates with MCP servers using JSON-RPC over stdio.
-
-**Features:**
+**Key Capabilities:**
 
 - Initialize connections to MCP servers
-- List available tools
+- List available tools with examples
 - Execute tool calls with JSON parameters
 - Interactive exploration mode
-
-### 2. Simple Bash Wrappers
-
-Direct wrappers for basic operations:
-
-- `mcp-list-tools.sh` - List all tools from a server
-- `mcp-call-tool.sh` - Call a specific tool
-
-### 3. Advanced Configuration Wrapper
-
-Configuration-based wrapper for managing multiple MCP servers:
-
-- `mcp-wrapper.sh` - Execute commands using server definitions from config
-- `mcp-config.example.json` - Example configuration with common servers
+- Daemon mode for high-performance batch operations
+- Configuration management with CLLM standards
+- Auto-initialization of configured servers
 
 ## Installation
 
@@ -174,30 +141,27 @@ cd research
 uv sync
 ```
 
-4. Make scripts executable:
-
-```bash
-chmod +x mcp_cli.py mcp-*.sh
-```
-
-5. (Optional) Create configuration file:
+4. (Optional) Create configuration file:
 
 ```bash
 cp mcp-config.example.json mcp-config.json
 # Edit mcp-config.json with your server configurations
 ```
 
-### Running with uv
+### Running the CLI
 
-You can run the CLI tool using uv:
+You can run the CLI tool directly after installation:
 
 ```bash
-# Using uv run
-uv run mcp-cli list-tools "npx -y @modelcontextprotocol/server-filesystem /tmp"
+# Using installed command
+cllm-mcp list-tools filesystem
+
+# Using uv run (during development)
+uv run cllm-mcp list-tools filesystem
 
 # Or activate the virtual environment
 source .venv/bin/activate
-mcp-cli list-tools "npx -y @modelcontextprotocol/server-filesystem /tmp"
+cllm-mcp list-tools filesystem
 ```
 
 ## Usage Examples
@@ -849,8 +813,11 @@ All major design decisions are documented in `docs/decisions/`:
 - **ADR-0004**: CLLM-style configuration hierarchy (`.cllm/mcp-config.json`)
 - **ADR-0005**: Automatic daemon initialization of configured servers
 - **ADR-0006**: Tool invocation examples in `list-tools` output
+- **ADR-0007**: Dropped legacy Python scripts, modernized to single `cllm-mcp` command
 
 See `docs/decisions/` directory for full details and rationale.
+
+**Migration Note**: Legacy `python mcp_cli.py` and `python mcp_daemon.py` commands have been removed. Use `cllm-mcp` command instead. See [MIGRATION.md](docs/MIGRATION.md) for details.
 
 ## Future Enhancements
 
@@ -858,7 +825,8 @@ See `docs/decisions/` directory for full details and rationale.
 - [x] **Unified command architecture** ✅ ADR-0003
 - [x] **CLLM configuration** ✅ ADR-0004
 - [x] **Auto-server initialization** ✅ ADR-0005
-- [ ] Tool invocation examples in list output (ADR-0006 - proposed)
+- [x] **Tool invocation examples in list output** ✅ ADR-0006
+- [x] **Modernized entry points** ✅ ADR-0007
 - [ ] Result formatting options (JSON, text, table)
 - [ ] Caching of tool definitions
 - [ ] Batch tool calling
@@ -886,11 +854,14 @@ cd examples
 
 ```
 .
-├── cllm_mcp/                    # Modern package (entry point)
-├── mcp_cli.py                   # Legacy direct client
-├── mcp_daemon.py                # Legacy daemon
+├── cllm_mcp/                    # Package (entry point)
+│   ├── main.py                  # Unified command dispatcher
+│   ├── config.py                # Configuration management
+│   ├── daemon_utils.py          # Daemon utilities
+│   └── socket_utils.py          # Socket communication
 ├── docs/
 │   ├── decisions/               # Architecture Decision Records
+│   ├── MIGRATION.md             # Migration guide from legacy commands
 │   └── testing/                 # Test documentation
 ├── examples/                    # Runnable example scripts
 ├── tests/                       # Comprehensive test suite
