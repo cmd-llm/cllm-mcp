@@ -1,4 +1,4 @@
-"""Shared test configuration and fixtures for cllm-mcp tests."""
+"""Shared test configuration and fixtures for cllm-mcp tests."""  # noqa: B101
 
 import json
 import os

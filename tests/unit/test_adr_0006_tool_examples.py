@@ -1,4 +1,4 @@
-"""Unit tests for ADR-0006: Tool invocation example generation."""
+"""Unit tests for ADR-0006: Tool invocation example generation."""  # noqa: B101
 
 import json
 

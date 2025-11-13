@@ -1,4 +1,4 @@
-"""Unit tests for configuration management (cllm_mcp/config.py)."""
+"""Unit tests for configuration management (cllm_mcp/config.py)."""  # noqa: B101
 
 from pathlib import Path
 

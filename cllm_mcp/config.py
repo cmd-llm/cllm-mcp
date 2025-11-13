@@ -135,8 +135,8 @@ def find_config_file(
         if old_path.exists():
             if verbose:
                 trace.append(f"[CONFIG] ⚠ Found at deprecated location: {old_path}")
-                trace.append("[CONFIG] ⚠ WARNING: Old config locations are deprecated"d")
-                trace.append("[CONFIG] ⚠ Please migrate to ~/.cllm/mcp-config.json"n")
+                trace.append("[CONFIG] ⚠ WARNING: Old config locations are deprecated")
+                trace.append("[CONFIG] ⚠ Please migrate to ~/.cllm/mcp-config.json")
             return old_path, trace
 
     if verbose:
@@ -503,18 +503,18 @@ def cmd_config_show(args):
 
             if not errors:
                 servers = list_servers(config)
-                print("\n[CONFIG] Configuration Status: ✓ Valid"d")
+                print("\n[CONFIG] Configuration Status: ✓ Valid")
                 print(f"[CONFIG] Servers configured: {len(servers)}")
                 if servers:
                     print(
                         f"[CONFIG] Available servers: {', '.join(s['name'] for s in servers)}"
                     )
             else:
-                print("\n[CONFIG] Configuration Status: ✗ Invalid"d")
+                print("\n[CONFIG] Configuration Status: ✗ Invalid")
                 for error in errors:
                     print(f"[CONFIG]   - {error}")
         except ConfigError as e:
-            print("\n[CONFIG] Configuration Status: ✗ Error"r")
+            print("\n[CONFIG] Configuration Status: ✗ Error")
             print(f"[CONFIG]   {e}")
     else:
         print("\n[CONFIG] No configuration file found!")
@@ -554,7 +554,7 @@ def cmd_config_migrate(args):
         print(f"  - {path}")
 
     if new_location.exists():
-        print("\n⚠ WARNING: New location already exists!"!")
+        print("\n⚠ WARNING: New location already exists!")
         print(f"  {new_location}")
         print("\nPlease manually migrate your configuration.")
         print("Do not overwrite the existing file.")
@@ -578,7 +578,7 @@ def cmd_config_migrate(args):
         with open(new_location, "w") as f:
             f.write(config_data)
 
-        print("\n✓ Migrated successfully!"!")
+        print("\n✓ Migrated successfully!")
         print(f"  Source: {source}")
         print(f"  Target: {new_location}")
 

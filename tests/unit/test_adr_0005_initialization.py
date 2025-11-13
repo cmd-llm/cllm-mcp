@@ -7,7 +7,7 @@ This test module covers:
 3. Initialization failure handling (fail/warn/ignore policies)
 4. Health monitoring and server restart
 5. Status reporting with auto-started server info
-"""
+"""  # noqa: B101
 
 import os
 import sys
