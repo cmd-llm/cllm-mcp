@@ -329,8 +329,9 @@ def handle_list_tools(args):
     if args.verbose and server_name:
         print(f"[config] Resolved server '{server_name}' to: {resolved_command}")
 
-    # Set the resolved command
+    # Set the resolved command and preserve the server name
     args.server_command = resolved_command
+    args.server_name = server_name or args.server_command  # Use name if available, otherwise use command
 
     # Set args for the handler
     args.use_daemon = use_daemon

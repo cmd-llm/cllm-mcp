@@ -373,14 +373,16 @@ def cmd_list_tools(args):
                 schema = tool["inputSchema"]
                 # Generate and show example
                 example = generate_json_example(schema)
+                # Use server_name if available (from config), otherwise use server_command
+                server_ref = getattr(args, 'server_name', args.server_command)
                 if example:
                     example_json = json.dumps(example)
                     print("    Example:")
-                    print(f"      cllm-mcp call-tool {args.server_command} {tool['name']} '{example_json}'")
+                    print(f"      cllm-mcp call-tool {server_ref} {tool['name']} '{example_json}'")
                 else:
                     # For tools with no parameters
                     print("    Example:")
-                    print(f"      cllm-mcp call-tool {args.server_command} {tool['name']} '{{}}'")
+                    print(f"      cllm-mcp call-tool {server_ref} {tool['name']} '{{}}'")
             print()
 
 
