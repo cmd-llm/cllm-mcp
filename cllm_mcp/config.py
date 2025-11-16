@@ -18,6 +18,8 @@ import sys
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
+from .env_expansion import validate_env_config
+
 
 class ConfigError(Exception):
     """Raised when configuration is invalid."""
@@ -210,8 +212,14 @@ def validate_config(config: Dict[str, Any]) -> List[str]:
         if "args" in server_config and not isinstance(server_config["args"], list):
             errors.append(f"Server '{server_name}': 'args' must be a list")
 
-        if "env" in server_config and not isinstance(server_config["env"], dict):
-            errors.append(f"Server '{server_name}': 'env' must be a dictionary")
+        # ADR-0008: Validate environment variable configuration
+        if "env" in server_config:
+            if not isinstance(server_config["env"], dict):
+                errors.append(f"Server '{server_name}': 'env' must be a dictionary")
+            else:
+                # Validate the env field contents
+                env_errors = validate_env_config(server_config["env"], server_name)
+                errors.extend(env_errors)
 
         if "description" in server_config and not isinstance(
             server_config["description"], str

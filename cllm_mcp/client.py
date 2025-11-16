@@ -26,6 +26,7 @@ Examples:
 import argparse
 import hashlib
 import json
+import os
 import shlex
 import subprocess
 import sys
@@ -37,28 +38,46 @@ from .socket_utils import DAEMON_TOOL_TIMEOUT, SocketClient
 class MCPClient:
     """Simple MCP client that communicates with MCP servers via stdio."""
 
-    def __init__(self, server_command: str):
+    def __init__(self, server_command: str, env: Optional[Dict[str, str]] = None):
         """
         Initialize MCP client with a server command.
 
         Args:
             server_command: Command to start the MCP server (e.g., "npx server-name")
+            env: Optional environment variables to pass to the server subprocess.
+                 If provided, will be merged with parent environment.
         """
         self.server_command = server_command
+        self.env = env
         self.process: Optional[subprocess.Popen] = None
         self.message_id = 0
 
-    def start(self):
-        """Start the MCP server process."""
+    def start(self, env: Optional[Dict[str, str]] = None):
+        """Start the MCP server process.
+
+        Args:
+            env: Optional environment variables for the subprocess.
+                 If provided here, overrides the env from __init__.
+        """
+        # Use provided env parameter, falling back to instance env, then to None
+        server_env = env if env is not None else self.env
+
         cmd_parts = shlex.split(self.server_command)
-        self.process = subprocess.Popen(
-            cmd_parts,
-            stdin=subprocess.PIPE,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            text=True,
-            bufsize=1,
-        )
+
+        # Build subprocess arguments
+        popen_kwargs = {
+            "stdin": subprocess.PIPE,
+            "stdout": subprocess.PIPE,
+            "stderr": subprocess.PIPE,
+            "text": True,
+            "bufsize": 1,
+        }
+
+        # Add environment if provided
+        if server_env is not None:
+            popen_kwargs["env"] = server_env
+
+        self.process = subprocess.Popen(cmd_parts, **popen_kwargs)
 
         # Initialize the connection
         self._send_message(
@@ -350,8 +369,34 @@ def cmd_list_tools(args):
             print(f"Error: {e}", file=sys.stderr)
             sys.exit(1)
     else:
-        # Direct mode
-        client = MCPClient(args.server_command)
+        # Direct mode - build environment if we have a server name from config
+        from .config import find_config_file, load_config
+        from .env_expansion import build_server_env
+
+        server_env = None
+        server_name = getattr(args, "server_name", None)
+
+        # If we have a server name (from config), load the config and build environment
+        if server_name:
+            try:
+                config_path, _ = find_config_file()
+                if config_path:
+                    config = load_config(str(config_path))
+                    if config and "mcpServers" in config:
+                        server_config = config["mcpServers"].get(server_name, {})
+                        config_env = server_config.get("env")
+                        if config_env:
+                            server_env = build_server_env(
+                                server_name=server_name,
+                                config_env=config_env,
+                                parent_env=os.environ.copy(),
+                                strict=False,
+                            )
+            except Exception:
+                # If config loading fails, continue without environment variables
+                pass
+
+        client = MCPClient(args.server_command, env=server_env)
         try:
             client.start()
             tools = client.list_tools()
@@ -407,8 +452,34 @@ def cmd_call_tool(args):
             print(f"Error: {e}", file=sys.stderr)
             sys.exit(1)
     else:
-        # Direct mode
-        client = MCPClient(args.server_command)
+        # Direct mode - build environment if we have a server name from config
+        from .config import find_config_file, load_config
+        from .env_expansion import build_server_env
+
+        server_env = None
+        server_name = getattr(args, "server_name", None)
+
+        # If we have a server name (from config), load the config and build environment
+        if server_name:
+            try:
+                config_path, _ = find_config_file()
+                if config_path:
+                    config = load_config(str(config_path))
+                    if config and "mcpServers" in config:
+                        server_config = config["mcpServers"].get(server_name, {})
+                        config_env = server_config.get("env")
+                        if config_env:
+                            server_env = build_server_env(
+                                server_name=server_name,
+                                config_env=config_env,
+                                parent_env=os.environ.copy(),
+                                strict=False,
+                            )
+            except Exception:
+                # If config loading fails, continue without environment variables
+                pass
+
+        client = MCPClient(args.server_command, env=server_env)
         try:
             client.start()
             result = client.call_tool(args.tool_name, params)
@@ -422,7 +493,34 @@ def cmd_call_tool(args):
 
 def cmd_interactive(args):
     """Interactive mode for exploring and calling tools."""
-    client = MCPClient(args.server_command)
+    # Build environment if we have a server name from config
+    from .config import find_config_file, load_config
+    from .env_expansion import build_server_env
+
+    server_env = None
+    server_name = getattr(args, "server_name", None)
+
+    # If we have a server name (from config), load the config and build environment
+    if server_name:
+        try:
+            config_path, _ = find_config_file()
+            if config_path:
+                config = load_config(str(config_path))
+                if config and "mcpServers" in config:
+                    server_config = config["mcpServers"].get(server_name, {})
+                    config_env = server_config.get("env")
+                    if config_env:
+                        server_env = build_server_env(
+                            server_name=server_name,
+                            config_env=config_env,
+                            parent_env=os.environ.copy(),
+                            strict=False,
+                        )
+        except Exception:
+            # If config loading fails, continue without environment variables
+            pass
+
+    client = MCPClient(args.server_command, env=server_env)
     try:
         client.start()
         print(f"Connected to MCP server: {args.server_command}")
