@@ -394,8 +394,9 @@ def handle_call_tool(args):
     if args.verbose and server_name:
         print(f"[config] Resolved server '{server_name}' to: {resolved_command}")
 
-    # Set the resolved command
+    # Set the resolved command and preserve the server name
     args.server_command = resolved_command
+    args.server_name = server_name or args.server_command
 
     # Set args for the handler
     args.use_daemon = use_daemon
@@ -406,6 +407,37 @@ def handle_call_tool(args):
 
 def handle_interactive(args):
     """Handle interactive command (always direct mode)."""
+    # Try to load config and resolve server reference
+    config = None
+    try:
+        if args.config:
+            config_path = args.config
+        else:
+            config_path, _ = find_config_file(verbose=args.verbose)
+        if config_path:
+            config = load_config(str(config_path))
+            errors = validate_config(config)
+            if errors:
+                if args.verbose:
+                    print(
+                        "[config] Configuration is invalid, ignoring", file=sys.stderr
+                    )
+                config = None
+    except ConfigError:
+        if args.verbose:
+            print("[config] Could not load configuration", file=sys.stderr)
+        config = None
+
+    # Resolve server reference (could be a name or a command)
+    resolved_command, server_name = resolve_server_ref(args.server_command, config)
+
+    if args.verbose and server_name:
+        print(f"[config] Resolved server '{server_name}' to: {resolved_command}")
+
+    # Set the resolved command and preserve the server name
+    args.server_command = resolved_command
+    args.server_name = server_name or args.server_command
+
     # Interactive mode doesn't use daemon
     args.use_daemon = False
     return cmd_interactive(args)
