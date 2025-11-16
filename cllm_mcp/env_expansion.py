@@ -4,9 +4,8 @@ This module implements the environment variable support specified in ADR-0008,
 providing variable expansion, merging, and validation for MCP server initialization.
 """
 
-import os
 import re
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional
 
 
 class EnvironmentVariableError(Exception):
@@ -22,9 +21,7 @@ class EnvironmentVariableError(Exception):
 
 
 def expand_env_variable(
-    value: str,
-    parent_env: Dict[str, str],
-    strict: bool = False
+    value: str, parent_env: Dict[str, str], strict: bool = False
 ) -> str:
     """Expand environment variable references in a value string.
 
@@ -50,17 +47,15 @@ def expand_env_variable(
 
     # Pattern to match ${VAR} or ${VAR:default}
     # Negative lookbehind prevents matching escaped \${
-    pattern = r'(?<!\\)\$\{([^}:]+)(?::([^}]*))?\}'
+    pattern = r"(?<!\\)\$\{([^}:]+)(?::([^}]*))?\}"
 
     def replace_var(match: re.Match) -> str:
         var_name = match.group(1)
         var_default = match.group(2)
 
         # Check for nested expansion (not supported)
-        if '${' in var_name or (var_default and '${' in var_default):
-            raise ValueError(
-                f"Nested expansion not supported: {match.group(0)}"
-            )
+        if "${" in var_name or (var_default and "${" in var_default):
+            raise ValueError(f"Nested expansion not supported: {match.group(0)}")
 
         # Look up variable in parent environment
         if var_name in parent_env:
@@ -75,7 +70,7 @@ def expand_env_variable(
             raise EnvironmentVariableError(
                 server="<unknown>",
                 var=var_name,
-                reason="variable not found and no default provided"
+                reason="variable not found and no default provided",
             )
         else:
             # No default and non-strict mode - return original pattern
@@ -85,14 +80,13 @@ def expand_env_variable(
     result = re.sub(pattern, replace_var, value)
 
     # Handle escaped braces: \${ becomes ${
-    result = result.replace(r'\${', '${')
+    result = result.replace(r"\${", "${")
 
     return result
 
 
 def validate_env_config(
-    env_dict: Optional[Dict],
-    server_name: str = "<unknown>"
+    env_dict: Optional[Dict], server_name: str = "<unknown>"
 ) -> List[str]:
     """Validate environment variable configuration.
 
@@ -137,22 +131,22 @@ def validate_env_config(
             continue
 
         # Validate expansion syntax
-        if '${' in value:
+        if "${" in value:
             # Check for malformed patterns
-            if not re.search(r'\$\{[^}]+\}', value):
+            if not re.search(r"\$\{[^}]+\}", value):
                 # Pattern contains ${ but no valid }
                 errors.append(
                     f"Server '{server_name}': env['{key}'] has malformed "
                     f"variable expansion: {value}"
                 )
             # Check for nested expansion
-            elif '${' in value.replace('${', '', 1):
+            elif "${" in value.replace("${", "", 1):
                 # More than one ${ suggests nested expansion
                 try:
                     # Try to detect nested patterns
-                    for match in re.finditer(r'\$\{([^}]*)\}', value):
+                    for match in re.finditer(r"\$\{([^}]*)\}", value):
                         var_content = match.group(1)
-                        if '${' in var_content:
+                        if "${" in var_content:
                             errors.append(
                                 f"Server '{server_name}': env['{key}'] has "
                                 f"nested variable expansion: {value}"
@@ -169,7 +163,7 @@ def build_server_env(
     config_env: Optional[Dict[str, str]],
     parent_env: Dict[str, str],
     cli_overrides: Optional[Dict[str, str]] = None,
-    strict: bool = False
+    strict: bool = False,
 ) -> Dict[str, str]:
     """Merge environment from multiple sources with proper precedence.
 
@@ -199,19 +193,13 @@ def build_server_env(
         for key, value in config_env.items():
             try:
                 # Expand the value using parent_env as reference
-                expanded_value = expand_env_variable(
-                    value,
-                    parent_env,
-                    strict=strict
-                )
+                expanded_value = expand_env_variable(value, parent_env, strict=strict)
                 merged_env[key] = expanded_value
             except EnvironmentVariableError as e:
                 # Re-raise with server context
                 raise EnvironmentVariableError(
-                    server=server_name,
-                    var=e.variable,
-                    reason=e.reason
-                )
+                    server=server_name, var=e.variable, reason=e.reason
+                ) from e
 
     # Apply CLI overrides (highest priority)
     if cli_overrides:
@@ -221,8 +209,7 @@ def build_server_env(
 
 
 def resolve_server_env_overrides(
-    server_name: str,
-    parent_env: Dict[str, str]
+    server_name: str, parent_env: Dict[str, str]
 ) -> Dict[str, str]:
     """Extract CLLM_MCP_SERVER_ENV_* overrides from environment.
 
@@ -241,15 +228,14 @@ def resolve_server_env_overrides(
 
     for key, value in parent_env.items():
         if key.startswith(prefix):
-            var_name = key[len(prefix):]
+            var_name = key[len(prefix) :]
             overrides[var_name] = value
 
     return overrides
 
 
 def mask_sensitive_variables(
-    env_dict: Dict[str, str],
-    sensitive_patterns: Optional[List[str]] = None
+    env_dict: Dict[str, str], sensitive_patterns: Optional[List[str]] = None
 ) -> Dict[str, str]:
     """Mask sensitive variables for logging purposes.
 

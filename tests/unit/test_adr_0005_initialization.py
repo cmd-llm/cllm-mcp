@@ -18,14 +18,13 @@ import pytest
 # Add parent to path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 
-from mcp_daemon import (
+from cllm_mcp.config import validate_config
+from cllm_mcp.daemon import (
     InitializationResult,
     MCPDaemon,
     build_server_command,
     initialize_servers_async,
 )
-
-from cllm_mcp.config import validate_config
 
 
 class TestConfigurationValidation:
@@ -244,7 +243,7 @@ class TestDaemonAutoStartTracking:
         daemon = MCPDaemon()
 
         # Mock the MCPClient
-        with patch("mcp_daemon.MCPClient"):
+        with patch("cllm_mcp.client.MCPClient"):
             # Simulate starting a server with auto_start=True
             daemon.servers["test1"] = MagicMock()
             daemon.auto_started_servers.add("test1")

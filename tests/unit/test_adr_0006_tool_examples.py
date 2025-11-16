@@ -3,7 +3,8 @@
 import json
 
 import pytest
-from mcp_cli import generate_json_example, generate_placeholder
+
+from cllm_mcp.client import generate_json_example, generate_placeholder
 
 
 class TestGeneratePlaceholder:

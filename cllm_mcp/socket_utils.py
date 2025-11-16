@@ -55,17 +55,17 @@ class SocketClient:
             self.sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
             self.sock.settimeout(self.timeout)
             self.sock.connect(self.socket_path)
-        except FileNotFoundError:
+        except FileNotFoundError as e:
             raise ConnectionError(
                 "Daemon not running. Start with: cllm-mcp daemon start"
-            )
-        except ConnectionRefusedError:
+            ) from e
+        except ConnectionRefusedError as e:
             raise ConnectionError(
                 f"Cannot connect to daemon at {self.socket_path}. "
                 f"Start with: cllm-mcp daemon start"
-            )
-        except socket.timeout:
-            raise TimeoutError(f"Daemon connection timed out ({self.timeout}s)")
+            ) from e
+        except socket.timeout as e:
+            raise TimeoutError(f"Daemon connection timed out ({self.timeout}s)") from e
 
     def send_request(self, request: Dict[str, Any]) -> Dict[str, Any]:
         """
@@ -93,12 +93,12 @@ class SocketClient:
             data = self._receive_message()
             return json.loads(data.decode().strip())
 
-        except socket.timeout:
+        except socket.timeout as e:
             self.close()
-            raise TimeoutError(f"Daemon request timed out ({self.timeout}s)")
+            raise TimeoutError(f"Daemon request timed out ({self.timeout}s)") from e
         except json.JSONDecodeError as e:
             self.close()
-            raise ValueError(f"Invalid JSON response from daemon: {e}")
+            raise ValueError(f"Invalid JSON response from daemon: {e}") from e
         except Exception:
             self.close()
             raise

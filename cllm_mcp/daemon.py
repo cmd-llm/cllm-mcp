@@ -40,7 +40,7 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from .client import MCPClient
 from .config import find_config_file, load_config, validate_config
-from .env_expansion import build_server_env, EnvironmentVariableError
+from .env_expansion import EnvironmentVariableError, build_server_env
 from .socket_utils import DAEMON_CTRL_TIMEOUT, SocketClient
 
 # Configure logging for ADR-0005 initialization
@@ -363,7 +363,9 @@ class MCPDaemon:
                                 strict=False,  # Non-strict by default
                             )
                         except EnvironmentVariableError as e:
-                            logger.warning(f"Environment variable error for server '{name}': {e}")
+                            logger.warning(
+                                f"Environment variable error for server '{name}': {e}"
+                            )
                             # Continue with parent environment if expansion fails
 
                 client = MCPClient(command, env=server_env)

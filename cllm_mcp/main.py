@@ -81,7 +81,9 @@ def _display_all_daemon_tools(
                         if args:
                             full_command = f"{command} {' '.join(args)}"
                         # Compute the server ID hash (MD5 of command)
-                        server_id = hashlib.md5(full_command.encode()).hexdigest()[:12]
+                        server_id = hashlib.md5(
+                            full_command.encode(), usedforsecurity=False
+                        ).hexdigest()[:12]
                         if server_id in servers:
                             id_to_name[server_id] = server_name
 

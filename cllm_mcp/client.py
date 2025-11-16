@@ -186,13 +186,13 @@ class MCPClient:
         try:
             return json.loads(line)
         except json.JSONDecodeError as e:
-            raise Exception(f"Invalid JSON response: {line}. Error: {e}")
+            raise Exception(f"Invalid JSON response: {line}. Error: {e}") from e
 
 
 # Daemon client functions
 def get_server_id(command: str) -> str:
     """Generate a unique ID for a server command."""
-    return hashlib.md5(command.encode()).hexdigest()[:12]
+    return hashlib.md5(command.encode(), usedforsecurity=False).hexdigest()[:12]
 
 
 def send_daemon_request(
@@ -205,13 +205,13 @@ def send_daemon_request(
         client.close()
         return response
     except ConnectionError as e:
-        raise Exception(str(e))
+        raise Exception(str(e)) from e
     except TimeoutError as e:
-        raise Exception(f"Daemon request timed out: {e}")
+        raise Exception(f"Daemon request timed out: {e}") from e
     except ValueError as e:
-        raise Exception(f"Invalid daemon response: {e}")
+        raise Exception(f"Invalid daemon response: {e}") from e
     except Exception as e:
-        raise Exception(f"Daemon communication error: {e}")
+        raise Exception(f"Daemon communication error: {e}") from e
 
 
 def daemon_list_tools(

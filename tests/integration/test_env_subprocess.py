@@ -4,13 +4,10 @@ This test module verifies that environment variables are correctly passed
 to MCP server subprocesses.
 """
 
-import json
 import os
 import subprocess
 import sys
 import tempfile
-from pathlib import Path
-from typing import Dict
 
 import pytest
 
@@ -30,9 +27,7 @@ env_dict = dict(os.environ)
 print(json.dumps(env_dict))
 """
     # Create a temporary Python script that outputs environment as JSON
-    with tempfile.NamedTemporaryFile(
-        mode="w", suffix=".py", delete=False
-    ) as f:
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".py", delete=False) as f:
         f.write("import os\nimport json\n")
         f.write(script_content)
         script_path = f.name
@@ -50,9 +45,7 @@ print(json.dumps(env_dict))
 def test_echo_script():
     """Create a test script that echoes environment variables."""
     # Use a simple shell script that prints environment variables
-    with tempfile.NamedTemporaryFile(
-        mode="w", suffix=".sh", delete=False
-    ) as f:
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".sh", delete=False) as f:
         f.write("#!/bin/bash\n")
         f.write("for var in TEST_VAR1 TEST_VAR2; do\n")
         f.write('  echo "$var=${!var}"\n')
@@ -83,10 +76,12 @@ class TestMCPClientEnvironment:
 
         try:
             # Create subprocess to check environment
-            cmd = f'{sys.executable} -c "import os; print(os.environ.get(\'TEST_PARENT_VAR\', \'NOTFOUND\'))"'
             result = subprocess.run(
-                cmd,
-                shell=True,
+                [
+                    sys.executable,
+                    "-c",
+                    "import os; print(os.environ.get('TEST_PARENT_VAR', 'NOTFOUND'))",
+                ],
                 capture_output=True,
                 text=True,
             )
@@ -103,10 +98,12 @@ class TestMCPClientEnvironment:
         }
 
         # Create subprocess with custom env
-        cmd = f'{sys.executable} -c "import os; print(os.environ.get(\'TEST_CUSTOM\', \'NOTFOUND\'))"'
         result = subprocess.run(
-            cmd,
-            shell=True,
+            [
+                sys.executable,
+                "-c",
+                "import os; print(os.environ.get('TEST_CUSTOM', 'NOTFOUND'))",
+            ],
             capture_output=True,
             text=True,
             env=custom_env,
@@ -119,7 +116,6 @@ class TestMCPClientEnvironment:
         parent_env["TEST_BASE"] = "test_value"
 
         # Create subprocess with expanded variable
-        cmd = f'{sys.executable} -c "import os; print(os.environ.get(\'TEST_EXPANDED\', \'NOTFOUND\'))"'
 
         # This would require using build_server_env and passing to subprocess
         # For now, just test the basic functionality
@@ -207,10 +203,12 @@ class TestEnvironmentEdgeCases:
             "EMPTY_VAR": "",
         }
 
-        cmd = f'{sys.executable} -c "import os; print(repr(os.environ.get(\'EMPTY_VAR\', \'NOTFOUND\')))"'
         result = subprocess.run(
-            cmd,
-            shell=True,
+            [
+                sys.executable,
+                "-c",
+                "import os; print(repr(os.environ.get('EMPTY_VAR', 'NOTFOUND')))",
+            ],
             capture_output=True,
             text=True,
             env=custom_env,
@@ -226,10 +224,12 @@ class TestEnvironmentEdgeCases:
             "SPECIAL": special_value,
         }
 
-        cmd = f'{sys.executable} -c "import os; print(os.environ.get(\'SPECIAL\', \'NOTFOUND\'))"'
         result = subprocess.run(
-            cmd,
-            shell=True,
+            [
+                sys.executable,
+                "-c",
+                "import os; print(os.environ.get('SPECIAL', 'NOTFOUND'))",
+            ],
             capture_output=True,
             text=True,
             env=custom_env,
@@ -247,10 +247,12 @@ class TestEnvironmentEdgeCases:
 
         # Skip this test if the system doesn't support the encoding
         try:
-            cmd = f'{sys.executable} -c "import os; print(os.environ.get(\'UNICODE\', \'NOTFOUND\'))"'
             result = subprocess.run(
-                cmd,
-                shell=True,
+                [
+                    sys.executable,
+                    "-c",
+                    "import os; print(os.environ.get('UNICODE', 'NOTFOUND'))",
+                ],
                 capture_output=True,
                 text=True,
                 env=custom_env,
@@ -280,10 +282,12 @@ class TestEnvironmentVariableInheritance:
                 "VAR_IN_BOTH": "custom_value",
             }
 
-            cmd = f'{sys.executable} -c "import os; print(os.environ.get(\'VAR_ONLY_IN_PARENT\', \'NOTFOUND\'))"'
             result = subprocess.run(
-                cmd,
-                shell=True,
+                [
+                    sys.executable,
+                    "-c",
+                    "import os; print(os.environ.get('VAR_ONLY_IN_PARENT', 'NOTFOUND'))",
+                ],
                 capture_output=True,
                 text=True,
                 env=custom_env,

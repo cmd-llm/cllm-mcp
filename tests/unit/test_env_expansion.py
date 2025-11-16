@@ -5,6 +5,7 @@ validation functionality introduced by ADR-0008.
 """
 
 import os
+
 import pytest
 
 from cllm_mcp.env_expansion import (
@@ -87,7 +88,7 @@ class TestEnvVariableExpansion:
             expand_env_variable("${${VAR}}", parent_env)
 
     def test_escaped_braces(self):
-        """\\${VAR} should produce literal ${VAR}."""
+        r"""\\${VAR} should produce literal ${VAR}."""
         parent_env = {"VAR": "value"}
         result = expand_env_variable(r"\${VAR}", parent_env)
         assert result == "${VAR}"

@@ -169,9 +169,9 @@ def load_config(config_path: str) -> Dict[str, Any]:
         with open(path, "r") as f:
             config = json.load(f)
     except json.JSONDecodeError as e:
-        raise ConfigError(f"Invalid JSON in {config_path}: {e}")
+        raise ConfigError(f"Invalid JSON in {config_path}: {e}") from e
     except IOError as e:
-        raise ConfigError(f"Error reading {config_path}: {e}")
+        raise ConfigError(f"Error reading {config_path}: {e}") from e
 
     return config
 
