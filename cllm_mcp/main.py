@@ -73,9 +73,7 @@ def _load_config_safely(args: argparse.Namespace) -> Dict[str, Any]:
         errors = validate_config(config)
         if errors:
             if getattr(args, "verbose", False):
-                print(
-                    "[config] Configuration is invalid, ignoring", file=sys.stderr
-                )
+                print("[config] Configuration is invalid, ignoring", file=sys.stderr)
             return None
         return config
     except ConfigError:

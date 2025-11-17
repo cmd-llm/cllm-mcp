@@ -254,11 +254,11 @@ def daemon_start(args):
     Supports the --no-auto-init flag to disable automatic server initialization.
     """
     socket_path = args.socket or None
-    from .config import find_config_file, load_config
 
     # Determine socket path
     if not socket_path:
         from .socket_utils import get_default_socket_path
+
         socket_path = get_default_socket_path()
 
     # Check if daemon is already running
