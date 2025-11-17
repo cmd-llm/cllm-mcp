@@ -75,15 +75,16 @@ class MCPDaemon:
             logger.warning(f"Failed to load configuration: {e}")
 
     def start_server(
-        self, name: str, command: str, auto_start: bool = False
+        self, name: str, command: str, auto_start: bool = False, server_name: Optional[str] = None
     ) -> Dict[str, Any]:
         """
         Start and cache an MCP server.
 
         Args:
-            name: Server name
+            name: Server ID (unique identifier for caching)
             command: Full server command
             auto_start: If True, mark as auto-started for health monitoring (ADR-0005)
+            server_name: Configured server name (used to load env vars from config)
         """
         with self.lock:
             if name in self.servers:
@@ -92,19 +93,23 @@ class MCPDaemon:
             try:
                 # ADR-0008: Build environment for the server using ServerEnvironmentBuilder
                 server_env = None
+
+                # Try to load env vars using the server_name if provided
+                lookup_name = server_name or name
+
                 if self.config and "mcpServers" in self.config:
-                    server_config = self.config["mcpServers"].get(name, {})
+                    server_config = self.config["mcpServers"].get(lookup_name, {})
                     if server_config:
                         try:
                             server_env = ServerEnvironmentBuilder.from_config(
-                                server_name=name,
+                                server_name=lookup_name,
                                 server_config=server_config,
                                 parent_env=os.environ.copy(),
                                 strict=False,  # Non-strict by default
                             )
                         except EnvironmentVariableError as e:
                             logger.warning(
-                                f"Environment variable error for server '{name}': {e}"
+                                f"Environment variable error for server '{lookup_name}': {e}"
                             )
                             # Continue with parent environment if expansion fails
 
@@ -322,7 +327,9 @@ class MCPDaemon:
         cmd = data.get("command")
 
         if cmd == "start":
-            return self.start_server(data["server"], data["server_command"])
+            # Extract server_name if provided (used for loading env vars from config)
+            server_name = data.get("server_name")
+            return self.start_server(data["server"], data["server_command"], server_name=server_name)
 
         elif cmd == "call":
             return self.call_tool(

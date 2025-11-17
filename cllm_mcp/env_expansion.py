@@ -173,6 +173,11 @@ def build_server_env(
     2. Server-specific environment (from config)
     3. CLI overrides (if present)
 
+    Variables in config can reference:
+    - Parent environment variables: ${PATH}, ${HOME}
+    - Other config variables: ${SOME_VAR} (if already processed)
+    - Default values: ${UNDEFINED:default}
+
     Args:
         server_name: Name of server (for error messages)
         config_env: Server-specific env from configuration
@@ -190,11 +195,14 @@ def build_server_env(
     merged_env = parent_env.copy()
 
     # Apply server-specific environment from config
+    # Process in order to allow references between config variables
     if config_env:
         for key, value in config_env.items():
             try:
-                # Expand the value using parent_env as reference
-                expanded_value = expand_env_variable(value, parent_env, strict=strict)
+                # Expand the value using both parent_env and already-processed config vars
+                # This allows config variables to reference each other and parent env
+                expansion_env = {**parent_env, **{k: merged_env[k] for k in list(merged_env.keys()) if k not in parent_env}}
+                expanded_value = expand_env_variable(value, expansion_env, strict=strict)
                 merged_env[key] = expanded_value
             except EnvironmentVariableError as e:
                 # Re-raise with server context

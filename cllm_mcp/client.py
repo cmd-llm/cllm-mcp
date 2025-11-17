@@ -198,17 +198,21 @@ def send_daemon_request(
 
 
 def daemon_list_tools(
-    server_command: str, socket_path: Optional[str] = None
+    server_command: str, socket_path: Optional[str] = None, server_name: Optional[str] = None
 ) -> List[Dict[str, Any]]:
     """List tools via daemon."""
     server_id = get_server_id(server_command)
 
     # Ensure server is started
+    # Include server_name if available so daemon can load env vars from config
     start_request = {
         "command": "start",
         "server": server_id,
         "server_command": server_command,
     }
+    if server_name:
+        start_request["server_name"] = server_name
+
     start_response = send_daemon_request(start_request, socket_path)
 
     if not start_response.get("success"):
@@ -246,16 +250,21 @@ def daemon_call_tool(
     tool_name: str,
     arguments: Dict[str, Any],
     socket_path: Optional[str] = None,
+    server_name: Optional[str] = None,
 ) -> Any:
     """Call a tool via daemon."""
     server_id = get_server_id(server_command)
 
     # Ensure server is started
+    # Include server_name if available so daemon can load env vars from config
     start_request = {
         "command": "start",
         "server": server_id,
         "server_command": server_command,
     }
+    if server_name:
+        start_request["server_name"] = server_name
+
     start_response = send_daemon_request(start_request, socket_path)
 
     if not start_response.get("success"):
@@ -347,7 +356,9 @@ def cmd_list_tools(args):
     if args.use_daemon:
         # Use daemon mode
         try:
-            tools = daemon_list_tools(args.server_command, args.daemon_socket)
+            # Pass server_name if available so daemon can load env vars from config
+            server_name = getattr(args, "server_name", None)
+            tools = daemon_list_tools(args.server_command, args.daemon_socket, server_name)
         except Exception as e:
             print(f"Error: {e}", file=sys.stderr)
             sys.exit(1)
@@ -404,8 +415,10 @@ def cmd_call_tool(args):
     if args.use_daemon:
         # Use daemon mode
         try:
+            # Pass server_name if available so daemon can load env vars from config
+            server_name = getattr(args, "server_name", None)
             result = daemon_call_tool(
-                args.server_command, args.tool_name, params, args.daemon_socket
+                args.server_command, args.tool_name, params, args.daemon_socket, server_name
             )
             print(json.dumps(result, indent=2))
         except Exception as e:
