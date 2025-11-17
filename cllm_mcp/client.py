@@ -35,6 +35,52 @@ from typing import Any, Dict, List, Optional
 from .socket_utils import DAEMON_TOOL_TIMEOUT, SocketClient, get_default_socket_path
 
 
+def _prepare_server_environment(server_name: Optional[str]) -> Optional[Dict[str, str]]:
+    """
+    Prepare server environment variables from configuration.
+
+    Loads the server configuration and builds environment variables
+    for the specified server if configured.
+
+    Args:
+        server_name: Name of the server to load configuration for.
+                    If None or empty, returns None.
+
+    Returns:
+        Environment variables dictionary for the server, or None if not configured
+        or config loading fails.
+    """
+    if not server_name:
+        return None
+
+    try:
+        from .config import find_config_file, load_config
+        from .env_expansion import build_server_env
+
+        config_path, _ = find_config_file()
+        if not config_path:
+            return None
+
+        config = load_config(str(config_path))
+        if not config or "mcpServers" not in config:
+            return None
+
+        server_config = config["mcpServers"].get(server_name, {})
+        config_env = server_config.get("env")
+        if not config_env:
+            return None
+
+        return build_server_env(
+            server_name=server_name,
+            config_env=config_env,
+            parent_env=os.environ.copy(),
+            strict=False,
+        )
+    except Exception:  # noqa: B014,B110
+        # If config loading fails, continue without environment variables
+        return None
+
+
 class MCPClient:
     """Simple MCP client that communicates with MCP servers via stdio."""
 
@@ -373,31 +419,8 @@ def cmd_list_tools(args):
             sys.exit(1)
     else:
         # Direct mode - build environment if we have a server name from config
-        from .config import find_config_file, load_config
-        from .env_expansion import build_server_env
-
-        server_env = None
         server_name = getattr(args, "server_name", None)
-
-        # If we have a server name (from config), load the config and build environment
-        if server_name:
-            try:
-                config_path, _ = find_config_file()
-                if config_path:
-                    config = load_config(str(config_path))
-                    if config and "mcpServers" in config:
-                        server_config = config["mcpServers"].get(server_name, {})
-                        config_env = server_config.get("env")
-                        if config_env:
-                            server_env = build_server_env(
-                                server_name=server_name,
-                                config_env=config_env,
-                                parent_env=os.environ.copy(),
-                                strict=False,
-                            )
-            except Exception:  # noqa: B014,B110
-                # If config loading fails, continue without environment variables
-                pass
+        server_env = _prepare_server_environment(server_name)
 
         client = MCPClient(args.server_command, env=server_env)
         try:
@@ -456,31 +479,8 @@ def cmd_call_tool(args):
             sys.exit(1)
     else:
         # Direct mode - build environment if we have a server name from config
-        from .config import find_config_file, load_config
-        from .env_expansion import build_server_env
-
-        server_env = None
         server_name = getattr(args, "server_name", None)
-
-        # If we have a server name (from config), load the config and build environment
-        if server_name:
-            try:
-                config_path, _ = find_config_file()
-                if config_path:
-                    config = load_config(str(config_path))
-                    if config and "mcpServers" in config:
-                        server_config = config["mcpServers"].get(server_name, {})
-                        config_env = server_config.get("env")
-                        if config_env:
-                            server_env = build_server_env(
-                                server_name=server_name,
-                                config_env=config_env,
-                                parent_env=os.environ.copy(),
-                                strict=False,
-                            )
-            except Exception:  # noqa: B014,B110
-                # If config loading fails, continue without environment variables
-                pass
+        server_env = _prepare_server_environment(server_name)
 
         client = MCPClient(args.server_command, env=server_env)
         try:
@@ -497,31 +497,8 @@ def cmd_call_tool(args):
 def cmd_interactive(args):
     """Interactive mode for exploring and calling tools."""
     # Build environment if we have a server name from config
-    from .config import find_config_file, load_config
-    from .env_expansion import build_server_env
-
-    server_env = None
     server_name = getattr(args, "server_name", None)
-
-    # If we have a server name (from config), load the config and build environment
-    if server_name:
-        try:
-            config_path, _ = find_config_file()
-            if config_path:
-                config = load_config(str(config_path))
-                if config and "mcpServers" in config:
-                    server_config = config["mcpServers"].get(server_name, {})
-                    config_env = server_config.get("env")
-                    if config_env:
-                        server_env = build_server_env(
-                            server_name=server_name,
-                            config_env=config_env,
-                            parent_env=os.environ.copy(),
-                            strict=False,
-                        )
-        except Exception:  # noqa: B014,B110
-            # If config loading fails, continue without environment variables
-            pass
+    server_env = _prepare_server_environment(server_name)
 
     client = MCPClient(args.server_command, env=server_env)
     try:
