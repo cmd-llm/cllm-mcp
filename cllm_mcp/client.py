@@ -32,6 +32,7 @@ import subprocess  # noqa: S404,B404
 import sys
 from typing import Any, Dict, List, Optional
 
+from .json_rpc_client import JsonRpcClient
 from .socket_utils import DAEMON_TOOL_TIMEOUT, SocketClient, get_default_socket_path
 
 
@@ -82,7 +83,11 @@ def _prepare_server_environment(server_name: Optional[str]) -> Optional[Dict[str
 
 
 class MCPClient:
-    """Simple MCP client that communicates with MCP servers via stdio."""
+    """MCP client that communicates with MCP servers via stdio.
+
+    This class manages the server process lifecycle and delegates JSON-RPC
+    protocol handling to JsonRpcClient.
+    """
 
     def __init__(self, server_command: str, env: Optional[Dict[str, str]] = None):
         """
@@ -96,10 +101,10 @@ class MCPClient:
         self.server_command = server_command
         self.env = env
         self.process: Optional[subprocess.Popen] = None
-        self.message_id = 0
+        self.rpc: Optional[JsonRpcClient] = None
 
     def start(self, env: Optional[Dict[str, str]] = None):
-        """Start the MCP server process.
+        """Start the MCP server process and initialize connection.
 
         Args:
             env: Optional environment variables for the subprocess.
@@ -126,29 +131,9 @@ class MCPClient:
         # cmd_parts comes from shlex.split which safely parses shell commands
         self.process = subprocess.Popen(cmd_parts, **popen_kwargs)  # noqa: S603,B603
 
-        # Initialize the connection
-        self._send_message(
-            {
-                "jsonrpc": "2.0",
-                "id": self._next_id(),
-                "method": "initialize",
-                "params": {
-                    "protocolVersion": "2024-11-05",
-                    "capabilities": {"roots": {"listChanged": True}, "sampling": {}},
-                    "clientInfo": {"name": "mcp-cli", "version": "1.0.0"},
-                },
-            }
-        )
-
-        # Read initialize response
-        response = self._read_message()
-        if "error" in response:
-            raise Exception(f"Initialize error: {response['error']}")
-
-        # Send initialized notification
-        self._send_notification(
-            {"jsonrpc": "2.0", "method": "notifications/initialized"}
-        )
+        # Initialize JSON-RPC client and handshake
+        self.rpc = JsonRpcClient(self.process)
+        self.rpc.initialize()
 
     def stop(self):
         """Stop the MCP server process."""
@@ -166,15 +151,9 @@ class MCPClient:
         Returns:
             List of tool definitions
         """
-        self._send_message(
-            {"jsonrpc": "2.0", "id": self._next_id(), "method": "tools/list"}
-        )
-
-        response = self._read_message()
-        if "error" in response:
-            raise Exception(f"Error listing tools: {response['error']}")
-
-        return response.get("result", {}).get("tools", [])
+        if not self.rpc:
+            raise Exception("Server not initialized")
+        return self.rpc.list_tools()
 
     def call_tool(self, tool_name: str, arguments: Dict[str, Any]) -> Any:
         """
@@ -187,53 +166,9 @@ class MCPClient:
         Returns:
             Tool execution result
         """
-        self._send_message(
-            {
-                "jsonrpc": "2.0",
-                "id": self._next_id(),
-                "method": "tools/call",
-                "params": {"name": tool_name, "arguments": arguments},
-            }
-        )
-
-        response = self._read_message()
-        if "error" in response:
-            raise Exception(f"Error calling tool: {response['error']}")
-
-        return response.get("result", {})
-
-    def _next_id(self) -> int:
-        """Generate next message ID."""
-        self.message_id += 1
-        return self.message_id
-
-    def _send_message(self, message: Dict[str, Any]):
-        """Send a JSON-RPC message to the server."""
-        if not self.process or not self.process.stdin:
-            raise Exception("Server process not started")
-
-        json_str = json.dumps(message)
-        self.process.stdin.write(json_str + "\n")
-        self.process.stdin.flush()
-
-    def _send_notification(self, notification: Dict[str, Any]):
-        """Send a JSON-RPC notification (no response expected)."""
-        self._send_message(notification)
-
-    def _read_message(self) -> Dict[str, Any]:
-        """Read a JSON-RPC message from the server."""
-        if not self.process or not self.process.stdout:
-            raise Exception("Server process not started")
-
-        line = self.process.stdout.readline()
-        if not line:
-            stderr_output = self.process.stderr.read() if self.process.stderr else ""
-            raise Exception(f"No response from server. Stderr: {stderr_output}")
-
-        try:
-            return json.loads(line)
-        except json.JSONDecodeError as e:
-            raise Exception(f"Invalid JSON response: {line}. Error: {e}") from e
+        if not self.rpc:
+            raise Exception("Server not initialized")
+        return self.rpc.call_tool(tool_name, arguments)
 
 
 # Daemon client functions
