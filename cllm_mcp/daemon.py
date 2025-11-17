@@ -40,7 +40,7 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from .client import MCPClient
 from .config import find_config_file, load_config, validate_config
-from .env_expansion import EnvironmentVariableError, build_server_env
+from .env_expansion import EnvironmentVariableError, ServerEnvironmentBuilder
 from .socket_utils import DAEMON_CTRL_TIMEOUT, SocketClient, get_default_socket_path
 
 # Configure logging for ADR-0005 initialization
@@ -349,16 +349,15 @@ class MCPDaemon:
                 return {"success": True, "message": "Server already running"}
 
             try:
-                # ADR-0008: Build environment for the server
+                # ADR-0008: Build environment for the server using ServerEnvironmentBuilder
                 server_env = None
                 if self.config and "mcpServers" in self.config:
                     server_config = self.config["mcpServers"].get(name, {})
-                    config_env = server_config.get("env")
-                    if config_env:
+                    if server_config:
                         try:
-                            server_env = build_server_env(
+                            server_env = ServerEnvironmentBuilder.from_config(
                                 server_name=name,
-                                config_env=config_env,
+                                server_config=server_config,
                                 parent_env=os.environ.copy(),
                                 strict=False,  # Non-strict by default
                             )

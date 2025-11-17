@@ -288,3 +288,88 @@ def _matches_pattern(name: str, pattern: str) -> bool:
     regex_pattern = pattern.replace("*", ".*").replace("?", ".")
     regex_pattern = f"^{regex_pattern}$"
     return bool(re.match(regex_pattern, name, re.IGNORECASE))
+
+
+class ServerEnvironmentBuilder:
+    """Builder for preparing server environment variables with proper precedence.
+
+    This class consolidates environment variable handling across direct and daemon modes.
+    It manages the precedence order:
+    1. Parent environment (inherited)
+    2. Server-specific environment (from config)
+    3. CLI overrides (if present)
+
+    Supports environment variable expansion with ${VAR} and ${VAR:default} patterns.
+    """
+
+    def __init__(
+        self,
+        server_name: str,
+        parent_env: Dict[str, str],
+        strict: bool = False,
+    ):
+        """Initialize the builder.
+
+        Args:
+            server_name: Name of the server (for error messages)
+            parent_env: Parent process environment to inherit from
+            strict: If True, raise on undefined variables without defaults
+        """
+        self.server_name = server_name
+        self.parent_env = parent_env.copy()
+        self.strict = strict
+
+    def build(
+        self,
+        config_env: Optional[Dict[str, str]] = None,
+        cli_overrides: Optional[Dict[str, str]] = None,
+    ) -> Dict[str, str]:
+        """Build the final environment with proper precedence.
+
+        Args:
+            config_env: Server-specific env from configuration
+            cli_overrides: CLI-provided environment variables
+
+        Returns:
+            Merged environment dict ready for subprocess
+
+        Raises:
+            EnvironmentVariableError: If strict=True and required var missing
+        """
+        return build_server_env(
+            server_name=self.server_name,
+            config_env=config_env,
+            parent_env=self.parent_env,
+            cli_overrides=cli_overrides,
+            strict=self.strict,
+        )
+
+    @staticmethod
+    def from_config(
+        server_name: str,
+        server_config: Dict[str, str],
+        parent_env: Dict[str, str],
+        strict: bool = False,
+    ) -> Dict[str, str]:
+        """Build environment from a server configuration dict.
+
+        This is a convenience method that extracts the env field and builds
+        the environment in one call.
+
+        Args:
+            server_name: Name of the server (for error messages)
+            server_config: Server configuration dictionary
+            parent_env: Parent process environment to inherit from
+            strict: If True, raise on undefined variables without defaults
+
+        Returns:
+            Merged environment dict ready for subprocess
+
+        Raises:
+            EnvironmentVariableError: If strict=True and required var missing
+        """
+        builder = ServerEnvironmentBuilder(server_name, parent_env, strict)
+        config_env = server_config.get("env")
+        cli_overrides = resolve_server_env_overrides(server_name, parent_env)
+
+        return builder.build(config_env=config_env, cli_overrides=cli_overrides)

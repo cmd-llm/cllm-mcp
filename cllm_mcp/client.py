@@ -55,7 +55,7 @@ def _prepare_server_environment(server_name: Optional[str]) -> Optional[Dict[str
 
     try:
         from .config import find_config_file, load_config
-        from .env_expansion import build_server_env
+        from .env_expansion import ServerEnvironmentBuilder
 
         config_path, _ = find_config_file()
         if not config_path:
@@ -66,13 +66,13 @@ def _prepare_server_environment(server_name: Optional[str]) -> Optional[Dict[str
             return None
 
         server_config = config["mcpServers"].get(server_name, {})
-        config_env = server_config.get("env")
-        if not config_env:
+        if not server_config:
             return None
 
-        return build_server_env(
+        # Use ServerEnvironmentBuilder for consistent environment handling
+        return ServerEnvironmentBuilder.from_config(
             server_name=server_name,
-            config_env=config_env,
+            server_config=server_config,
             parent_env=os.environ.copy(),
             strict=False,
         )
