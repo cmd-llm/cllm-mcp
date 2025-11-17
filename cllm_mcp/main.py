@@ -44,6 +44,46 @@ from .daemon_utils import get_daemon_socket_path, should_use_daemon
 from .socket_utils import get_daemon_config
 
 
+def _load_config_safely(args: argparse.Namespace) -> Dict[str, Any]:
+    """
+    Load and validate configuration file.
+
+    Handles:
+    - Finding config file (from args.config or auto-discovery)
+    - Loading the config
+    - Validating it
+    - Returns config dict or None if failed
+
+    Args:
+        args: Arguments namespace with optional 'config' and 'verbose' attributes
+
+    Returns:
+        Configuration dictionary or None if config is invalid or not found
+    """
+    try:
+        if getattr(args, "config", None):
+            config_path = args.config
+        else:
+            config_path, _ = find_config_file(verbose=getattr(args, "verbose", False))
+
+        if not config_path:
+            return None
+
+        config = load_config(str(config_path))
+        errors = validate_config(config)
+        if errors:
+            if getattr(args, "verbose", False):
+                print(
+                    "[config] Configuration is invalid, ignoring", file=sys.stderr
+                )
+            return None
+        return config
+    except ConfigError:
+        if getattr(args, "verbose", False):
+            print("[config] Could not load configuration", file=sys.stderr)
+        return None
+
+
 def _display_all_daemon_tools(
     result: Dict[str, Any],
     json_output: bool = False,
@@ -300,26 +340,8 @@ def handle_list_tools(args):
             print(f"Error: {e}", file=sys.stderr)
             sys.exit(1)
 
-    # Try to load config and resolve server reference
-    config = None
-    try:
-        if args.config:
-            config_path = args.config
-        else:
-            config_path, _ = find_config_file(verbose=args.verbose)
-        if config_path:
-            config = load_config(str(config_path))
-            errors = validate_config(config)
-            if errors:
-                if args.verbose:
-                    print(
-                        "[config] Configuration is invalid, ignoring", file=sys.stderr
-                    )
-                config = None
-    except ConfigError:
-        if args.verbose:
-            print("[config] Could not load configuration", file=sys.stderr)
-        config = None
+    # Load and validate config
+    config = _load_config_safely(args)
 
     # Detect and configure daemon early to potentially get server names from daemon config
     socket_path = get_daemon_socket_path(args.socket)
@@ -356,26 +378,8 @@ def handle_list_tools(args):
 
 def handle_call_tool(args):
     """Handle call-tool command with daemon detection and config resolution."""
-    # Try to load config and resolve server reference
-    config = None
-    try:
-        if args.config:
-            config_path = args.config
-        else:
-            config_path, _ = find_config_file(verbose=args.verbose)
-        if config_path:
-            config = load_config(str(config_path))
-            errors = validate_config(config)
-            if errors:
-                if args.verbose:
-                    print(
-                        "[config] Configuration is invalid, ignoring", file=sys.stderr
-                    )
-                config = None
-    except ConfigError:
-        if args.verbose:
-            print("[config] Could not load configuration", file=sys.stderr)
-        config = None
+    # Load and validate config
+    config = _load_config_safely(args)
 
     # Detect and configure daemon early to potentially get server names from daemon config
     socket_path = get_daemon_socket_path(args.socket)
@@ -409,26 +413,8 @@ def handle_call_tool(args):
 
 def handle_interactive(args):
     """Handle interactive command (always direct mode)."""
-    # Try to load config and resolve server reference
-    config = None
-    try:
-        if args.config:
-            config_path = args.config
-        else:
-            config_path, _ = find_config_file(verbose=args.verbose)
-        if config_path:
-            config = load_config(str(config_path))
-            errors = validate_config(config)
-            if errors:
-                if args.verbose:
-                    print(
-                        "[config] Configuration is invalid, ignoring", file=sys.stderr
-                    )
-                config = None
-    except ConfigError:
-        if args.verbose:
-            print("[config] Could not load configuration", file=sys.stderr)
-        config = None
+    # Load and validate config
+    config = _load_config_safely(args)
 
     # Resolve server reference (could be a name or a command)
     resolved_command, server_name = resolve_server_ref(args.server_command, config)
