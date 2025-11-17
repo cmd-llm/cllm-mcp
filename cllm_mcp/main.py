@@ -39,7 +39,7 @@ from .config import (
     resolve_server_ref,
     validate_config,
 )
-from .daemon import daemon_start, daemon_status, daemon_stop
+from .daemon import daemon_restart, daemon_start, daemon_status, daemon_stop
 from .daemon_utils import get_daemon_socket_path, should_use_daemon
 from .socket_utils import get_daemon_config
 
@@ -438,15 +438,14 @@ def handle_daemon(args):
         daemon_args = argparse.Namespace(socket=socket_path)
         return daemon_status(daemon_args)
     elif args.daemon_command == "restart":
-        # Restart = stop + start
-        daemon_args = argparse.Namespace(socket=socket_path)
-        print("Stopping daemon...")
-        try:
-            daemon_stop(daemon_args)
-        except Exception:  # noqa: B014,B110
-            pass  # Ignore if not running
-        print("Starting daemon...")
-        return daemon_start(daemon_args)
+        # Restart daemon using unified restart handler (ADR-0009)
+        daemon_args = argparse.Namespace(
+            socket=socket_path,
+            config=args.config,
+            no_auto_init=getattr(args, "no_auto_init", False),
+        )
+        exit_code = daemon_restart(daemon_args)
+        sys.exit(exit_code)
     else:
         print("Error: Unknown daemon command", file=sys.stderr)
         sys.exit(1)

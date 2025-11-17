@@ -12,6 +12,7 @@ This module is internal to cllm-mcp and is accessed via the unified cllm-mcp com
 Usage:
     cllm-mcp daemon start [--socket PATH]
     cllm-mcp daemon stop [--socket PATH]
+    cllm-mcp daemon restart [--socket PATH]
     cllm-mcp daemon status [--socket PATH]
 
 Example:
@@ -20,6 +21,9 @@ Example:
 
     # Use daemon for fast tool calls
     cllm-mcp call-tool filesystem read-file '{"path": "/tmp/test.txt"}'
+
+    # Restart the daemon (e.g., after config changes)
+    cllm-mcp daemon restart
 
     # Check daemon status
     cllm-mcp daemon status
@@ -35,6 +39,7 @@ import sys
 # Import public APIs from submodules
 from .daemon_lifecycle import (
     InitializationResult,
+    daemon_restart,
     daemon_start,
     daemon_status,
     daemon_stop,
@@ -50,6 +55,7 @@ __all__ = [
     "initialize_servers_async",
     "daemon_start",
     "daemon_stop",
+    "daemon_restart",
     "daemon_status",
     "main",
 ]
@@ -91,6 +97,21 @@ def main():
     # stop command
     subparsers.add_parser("stop", help="Stop the daemon")
 
+    # restart command
+    restart_parser = subparsers.add_parser(
+        "restart", help="Restart the daemon (stop then start)"
+    )
+    restart_parser.add_argument(
+        "--config",
+        default=None,
+        help="Path to MCP configuration file",
+    )
+    restart_parser.add_argument(
+        "--no-auto-init",
+        action="store_true",
+        help="Disable automatic server initialization (ADR-0005)",
+    )
+
     # status command
     status_parser = subparsers.add_parser("status", help="Check daemon status")
     status_parser.add_argument("--json", action="store_true", help="Output as JSON")
@@ -105,6 +126,9 @@ def main():
         daemon_start(args)
     elif args.command == "stop":
         daemon_stop(args)
+    elif args.command == "restart":
+        exit_code = daemon_restart(args)
+        sys.exit(exit_code)
     elif args.command == "status":
         daemon_status(args)
 

@@ -447,3 +447,71 @@ def daemon_status(args):
     except Exception as e:
         print(f"Error checking status: {e}", file=sys.stderr)
         sys.exit(1)
+
+
+def daemon_restart(args):
+    """
+    Restart the daemon (stop then start).
+
+    Gracefully stops the running daemon (if any) and immediately starts a fresh daemon.
+    Returns exit code 0 if daemon is running after restart, 1 if startup failed.
+
+    Implements ADR-0009: Add Daemon Restart Command.
+    """
+    from .socket_utils import get_default_socket_path
+
+    socket_path = args.socket or get_default_socket_path()
+
+    # Phase 1: Stop if running (ignore errors)
+    if os.path.exists(socket_path):
+        try:
+            client = SocketClient(socket_path, timeout=DAEMON_CTRL_TIMEOUT)
+            result = client.send_request({"command": "shutdown"})
+            client.close()
+
+            if result.get("success"):
+                logger.info("Daemon stopped successfully")
+                # Wait a bit for cleanup
+                time.sleep(0.5)
+            else:
+                logger.warning(
+                    f"Stop command returned error: {result.get('error', 'Unknown error')}"
+                )
+        except ConnectionError:
+            # Socket exists but nothing listening, clean it up
+            logger.info("Daemon not responding, cleaning up stale socket")
+            try:
+                os.unlink(socket_path)
+            except OSError:
+                pass
+        except (TimeoutError, ValueError) as e:
+            logger.warning(f"Error stopping daemon: {e}")
+        except Exception as e:
+            logger.warning(f"Unexpected error stopping daemon: {e}")
+
+    # Phase 2: Start daemon (required to succeed)
+    try:
+        # Create a namespace object that mimics argparse.Namespace
+        # We need to pass the right arguments to daemon_start
+        class Args:
+            pass
+
+        start_args = Args()
+        start_args.socket = socket_path
+        start_args.config = getattr(args, "config", None)
+        start_args.no_auto_init = getattr(args, "no_auto_init", False)
+        start_args.foreground = False  # Always run in background for restart
+
+        daemon_start(start_args)
+        return 0
+
+    except SystemExit as e:
+        # daemon_start calls sys.exit() on error
+        if e.code != 0:
+            print(f"[daemon] Error: Failed to restart daemon", file=sys.stderr)
+            return 1
+        return 0
+    except Exception as e:
+        print(f"[daemon] Error: Failed to restart daemon: {e}", file=sys.stderr)
+        logger.error(f"Restart failed: {e}")
+        return 1
