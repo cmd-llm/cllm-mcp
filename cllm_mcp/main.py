@@ -84,6 +84,64 @@ def _load_config_safely(args: argparse.Namespace) -> Dict[str, Any]:
         return None
 
 
+def _prepare_handler_args(
+    args: argparse.Namespace, force_direct_mode: bool = False
+) -> None:
+    """
+    Prepare handler arguments by resolving config and daemon settings.
+
+    Standardizes the setup for all command handlers:
+    - Loads and validates configuration
+    - Detects daemon availability (unless force_direct_mode=True)
+    - Gets daemon config if available
+    - Resolves server reference (name or command)
+    - Sets standard args attributes (server_command, server_name, use_daemon, daemon_socket)
+
+    Args:
+        args: Arguments namespace to populate with resolved values
+        force_direct_mode: If True, skips daemon detection and uses direct mode only
+
+    Returns:
+        None (modifies args in-place)
+    """
+    # Load and validate config
+    config = _load_config_safely(args)
+
+    # Determine daemon usage (unless in interactive/direct-only mode)
+    socket_path = get_daemon_socket_path(args.socket)
+    use_daemon = False
+
+    if not force_direct_mode:
+        use_daemon = should_use_daemon(
+            socket_path, args.no_daemon, args.daemon_timeout, args.verbose
+        )
+
+    # If no local config found but daemon is available, try to get config from daemon
+    if not config and use_daemon:
+        daemon_config = get_daemon_config(socket_path, verbose=args.verbose)
+        if daemon_config and daemon_config.get("servers"):
+            # Build a config dict from daemon's servers for resolution
+            config = {"mcpServers": daemon_config.get("servers", {})}
+
+    # Resolve server reference (could be a name or a command)
+    resolved_command, server_name = resolve_server_ref(args.server_command, config)
+
+    if args.verbose and server_name:
+        print(f"[config] Resolved server '{server_name}' to: {resolved_command}")
+
+    # Set the resolved command and preserve the server name
+    args.server_command = resolved_command
+    args.server_name = server_name or args.server_command
+
+    # Set args for the handlers
+    args.use_daemon = use_daemon
+    args.daemon_socket = socket_path
+
+    # Ensure optional attributes exist
+    if not hasattr(args, "json"):
+        args.json = False
+
+
 def _display_all_daemon_tools(
     result: Dict[str, Any],
     json_output: bool = False,
@@ -340,37 +398,8 @@ def handle_list_tools(args):
             print(f"Error: {e}", file=sys.stderr)
             sys.exit(1)
 
-    # Load and validate config
-    config = _load_config_safely(args)
-
-    # Detect and configure daemon early to potentially get server names from daemon config
-    socket_path = get_daemon_socket_path(args.socket)
-    use_daemon = should_use_daemon(
-        socket_path, args.no_daemon, args.daemon_timeout, args.verbose
-    )
-
-    # If no local config found but daemon is available, try to get config from daemon
-    if not config and use_daemon:
-        daemon_config = get_daemon_config(socket_path, verbose=args.verbose)
-        if daemon_config and daemon_config.get("servers"):
-            # Build a config dict from daemon's servers for resolution
-            config = {"mcpServers": daemon_config.get("servers", {})}
-
-    # Resolve server reference (could be a name or a command)
-    resolved_command, server_name = resolve_server_ref(args.server_command, config)
-
-    if args.verbose and server_name:
-        print(f"[config] Resolved server '{server_name}' to: {resolved_command}")
-
-    # Set the resolved command and preserve the server name
-    args.server_command = resolved_command
-    args.server_name = (
-        server_name or args.server_command
-    )  # Use name if available, otherwise use command
-
-    # Set args for the handler
-    args.use_daemon = use_daemon
-    args.daemon_socket = socket_path
+    # Prepare args with config resolution and daemon detection
+    _prepare_handler_args(args)
     args.json = getattr(args, "json", False)
 
     return cmd_list_tools(args)
@@ -378,56 +407,17 @@ def handle_list_tools(args):
 
 def handle_call_tool(args):
     """Handle call-tool command with daemon detection and config resolution."""
-    # Load and validate config
-    config = _load_config_safely(args)
-
-    # Detect and configure daemon early to potentially get server names from daemon config
-    socket_path = get_daemon_socket_path(args.socket)
-    use_daemon = should_use_daemon(
-        socket_path, args.no_daemon, args.daemon_timeout, args.verbose
-    )
-
-    # If no local config found but daemon is available, try to get config from daemon
-    if not config and use_daemon:
-        daemon_config = get_daemon_config(socket_path, verbose=args.verbose)
-        if daemon_config and daemon_config.get("servers"):
-            # Build a config dict from daemon's servers for resolution
-            config = {"mcpServers": daemon_config.get("servers", {})}
-
-    # Resolve server reference (could be a name or a command)
-    resolved_command, server_name = resolve_server_ref(args.server_command, config)
-
-    if args.verbose and server_name:
-        print(f"[config] Resolved server '{server_name}' to: {resolved_command}")
-
-    # Set the resolved command and preserve the server name
-    args.server_command = resolved_command
-    args.server_name = server_name or args.server_command
-
-    # Set args for the handler
-    args.use_daemon = use_daemon
-    args.daemon_socket = socket_path
+    # Prepare args with config resolution and daemon detection
+    _prepare_handler_args(args)
 
     return cmd_call_tool(args)
 
 
 def handle_interactive(args):
     """Handle interactive command (always direct mode)."""
-    # Load and validate config
-    config = _load_config_safely(args)
+    # Prepare args with config resolution (skip daemon detection for interactive)
+    _prepare_handler_args(args, force_direct_mode=True)
 
-    # Resolve server reference (could be a name or a command)
-    resolved_command, server_name = resolve_server_ref(args.server_command, config)
-
-    if args.verbose and server_name:
-        print(f"[config] Resolved server '{server_name}' to: {resolved_command}")
-
-    # Set the resolved command and preserve the server name
-    args.server_command = resolved_command
-    args.server_name = server_name or args.server_command
-
-    # Interactive mode doesn't use daemon
-    args.use_daemon = False
     return cmd_interactive(args)
 
 
