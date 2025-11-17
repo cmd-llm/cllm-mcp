@@ -16,7 +16,7 @@ from pathlib import Path
 from typing import Any, Dict, Optional
 
 from .client import MCPClient
-from .config import find_config_file, load_config, validate_config
+from .config import build_server_command, find_config_file, load_config, validate_config
 from .env_expansion import EnvironmentVariableError, ServerEnvironmentBuilder
 from .socket_utils import get_default_socket_path
 
@@ -36,15 +36,6 @@ def _format_uptime(seconds: float) -> str:
         hours = int(seconds // 3600)
         mins = int((seconds % 3600) // 60)
         return f"{hours}h {mins}m"
-
-
-def build_server_command(server_config: Dict[str, Any]) -> str:
-    """Build the full server command from configuration."""
-    command = server_config.get("command", "")
-    args = server_config.get("args", [])
-    if args:
-        return f"{command} {' '.join(args)}"
-    return command
 
 
 class MCPDaemon:

@@ -488,8 +488,6 @@ def cmd_config_validate(args):
 
 def cmd_config_show(args):
     """Command to show which configuration file is being used."""
-    getattr(args, "verbose", False)
-
     # Find config file (always verbose for this command)
     config_path = args.config
     found_path, trace = find_config_file(config_path, verbose=True)

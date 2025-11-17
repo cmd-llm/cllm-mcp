@@ -23,7 +23,6 @@ Examples:
     cllm-mcp interactive filesystem
 """
 
-import argparse
 import hashlib
 import json
 import os
@@ -489,68 +488,3 @@ def cmd_interactive(args):
 
     finally:
         client.stop()
-
-
-def main():
-    """Main entry point for the MCP CLI."""
-    parser = argparse.ArgumentParser(
-        description="MCP CLI - Make MCP tool calls without an LLM",
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-        epilog=__doc__,
-    )
-
-    subparsers = parser.add_subparsers(dest="command", help="Command to execute")
-
-    # list-tools command
-    list_parser = subparsers.add_parser("list-tools", help="List all available tools")
-    list_parser.add_argument("server_command", help="Command to start MCP server")
-    list_parser.add_argument("--json", action="store_true", help="Output as JSON")
-    list_parser.add_argument(
-        "--use-daemon",
-        action="store_true",
-        help="Use daemon mode for faster repeated calls",
-    )
-    list_parser.add_argument(
-        "--daemon-socket",
-        default=None,
-        help="Daemon socket path (default: $MCP_DAEMON_SOCKET, $XDG_RUNTIME_DIR/mcp-daemon.sock, or /tmp/mcp-daemon.sock)",
-    )
-
-    # call-tool command
-    call_parser = subparsers.add_parser("call-tool", help="Call a specific tool")
-    call_parser.add_argument("server_command", help="Command to start MCP server")
-    call_parser.add_argument("tool_name", help="Name of the tool to call")
-    call_parser.add_argument("parameters", help="JSON string of tool parameters")
-    call_parser.add_argument(
-        "--use-daemon",
-        action="store_true",
-        help="Use daemon mode for faster repeated calls",
-    )
-    call_parser.add_argument(
-        "--daemon-socket",
-        default=None,
-        help="Daemon socket path (default: $MCP_DAEMON_SOCKET, $XDG_RUNTIME_DIR/mcp-daemon.sock, or /tmp/mcp-daemon.sock)",
-    )
-
-    # interactive command
-    interactive_parser = subparsers.add_parser("interactive", help="Interactive mode")
-    interactive_parser.add_argument(
-        "server_command", help="Command to start MCP server"
-    )
-
-    args = parser.parse_args()
-
-    if not args.command:
-        parser.print_help()
-        sys.exit(1)
-
-    if args.command == "list-tools":
-        cmd_list_tools(args)
-    elif args.command == "call-tool":
-        cmd_call_tool(args)
-    elif args.command == "interactive":
-        cmd_interactive(args)
-
-
-if __name__ == "__main__":
-    main()
