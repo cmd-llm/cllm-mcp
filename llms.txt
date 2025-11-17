@@ -14,10 +14,14 @@ All architectural decisions for this project are documented in `docs/decisions/`
 
 ## Key Files and Directories
 
+- `cllm_mcp/` - Main package implementation
+  - `main.py` - Unified CLI command dispatcher
+  - `client.py` - MCP client implementation
+  - `daemon.py` - Daemon entry point
+  - `daemon_lifecycle.py` - Daemon lifecycle management
+  - `daemon_server.py` - MCP daemon server
+  - `config.py` - Configuration management
 - `docs/decisions/` - Architecture Decision Records
-- `templates/VIBE_ADR_TEMPLATE.md` - Template for new ADRs
-- `mcp_cli.py` - Main CLI implementation
-- `mcp_daemon.py` - Daemon process implementation
 - `pyproject.toml` - Project configuration and dependencies
 
 ## Contributing
