@@ -469,7 +469,7 @@ def handle_daemon(args):
         print("Stopping daemon...")
         try:
             daemon_stop(daemon_args)
-        except Exception:
+        except Exception:  # noqa: B014,B110
             pass  # Ignore if not running
         print("Starting daemon...")
         return daemon_start(daemon_args)

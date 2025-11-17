@@ -4,11 +4,11 @@ Daemon detection and utility functions for ADR-0003.
 Provides smart daemon detection with graceful fallback to direct mode.
 """
 
-import os
 import sys
 from typing import Optional
 
 from .socket_utils import (
+    get_default_socket_path,
     is_daemon_available,
 )
 
@@ -58,7 +58,7 @@ def get_daemon_socket_path(socket_path: Optional[str] = None) -> str:
     """
     Get the daemon socket path from explicit arg, env var, or default.
 
-    Priority: explicit arg > environment variable > default
+    Priority: explicit arg > environment variable > default (XDG_RUNTIME_DIR or /tmp)
 
     Args:
         socket_path: Explicit socket path argument
@@ -69,8 +69,4 @@ def get_daemon_socket_path(socket_path: Optional[str] = None) -> str:
     if socket_path:
         return socket_path
 
-    env_path = os.environ.get("MCP_DAEMON_SOCKET")
-    if env_path:
-        return env_path
-
-    return "/tmp/mcp-daemon.sock"
+    return get_default_socket_path()

@@ -41,7 +41,7 @@ from typing import Any, Dict, List, Optional, Tuple
 from .client import MCPClient
 from .config import find_config_file, load_config, validate_config
 from .env_expansion import EnvironmentVariableError, build_server_env
-from .socket_utils import DAEMON_CTRL_TIMEOUT, SocketClient
+from .socket_utils import DAEMON_CTRL_TIMEOUT, SocketClient, get_default_socket_path
 
 # Configure logging for ADR-0005 initialization
 logging.basicConfig(
@@ -302,10 +302,10 @@ class MCPDaemon:
 
     def __init__(
         self,
-        socket_path: str = "/tmp/mcp-daemon.sock",
+        socket_path: Optional[str] = None,
         config_path: Optional[str] = None,
     ):
-        self.socket_path = socket_path
+        self.socket_path = socket_path or get_default_socket_path()
         self.servers: Dict[str, MCPClient] = {}
         self.lock = threading.Lock()
         self.running = True
@@ -679,7 +679,7 @@ def daemon_start(args):
 
     Supports the --no-auto-init flag to disable automatic server initialization.
     """
-    socket_path = args.socket
+    socket_path = args.socket or get_default_socket_path()
 
     # Check if daemon is already running
     if os.path.exists(socket_path):
@@ -777,7 +777,7 @@ def daemon_start(args):
 
 def daemon_stop(args):
     """Stop the daemon."""
-    socket_path = args.socket
+    socket_path = args.socket or get_default_socket_path()
 
     if not os.path.exists(socket_path):
         print("Daemon is not running")
@@ -813,7 +813,7 @@ def daemon_stop(args):
 
 def daemon_status(args):
     """Check daemon status (ADR-0005: enhanced with auto-start info)."""
-    socket_path = args.socket
+    socket_path = args.socket or get_default_socket_path()
 
     if not os.path.exists(socket_path):
         print("Daemon is not running")
@@ -875,8 +875,8 @@ def main():
 
     parser.add_argument(
         "--socket",
-        default="/tmp/mcp-daemon.sock",
-        help="Unix socket path (default: /tmp/mcp-daemon.sock)",
+        default=None,
+        help="Unix socket path (default: $MCP_DAEMON_SOCKET, $XDG_RUNTIME_DIR/mcp-daemon.sock, or /tmp/mcp-daemon.sock)",
     )
 
     subparsers = parser.add_subparsers(dest="command", help="Command to execute")

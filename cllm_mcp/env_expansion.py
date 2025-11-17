@@ -152,7 +152,8 @@ def validate_env_config(
                                 f"nested variable expansion: {value}"
                             )
                             break
-                except Exception:
+                except Exception:  # noqa: B014,B110
+                    # Ignore errors in variable expansion validation
                     pass
 
     return errors

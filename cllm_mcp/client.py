@@ -28,11 +28,11 @@ import hashlib
 import json
 import os
 import shlex
-import subprocess
+import subprocess  # noqa: S404,B404
 import sys
 from typing import Any, Dict, List, Optional
 
-from .socket_utils import DAEMON_TOOL_TIMEOUT, SocketClient
+from .socket_utils import DAEMON_TOOL_TIMEOUT, SocketClient, get_default_socket_path
 
 
 class MCPClient:
@@ -77,7 +77,8 @@ class MCPClient:
         if server_env is not None:
             popen_kwargs["env"] = server_env
 
-        self.process = subprocess.Popen(cmd_parts, **popen_kwargs)
+        # cmd_parts comes from shlex.split which safely parses shell commands
+        self.process = subprocess.Popen(cmd_parts, **popen_kwargs)  # noqa: S603,B603
 
         # Initialize the connection
         self._send_message(
@@ -196,11 +197,13 @@ def get_server_id(command: str) -> str:
 
 
 def send_daemon_request(
-    request: Dict[str, Any], socket_path: str = "/tmp/mcp-daemon.sock"
+    request: Dict[str, Any], socket_path: Optional[str] = None
 ) -> Dict[str, Any]:
     """Send a request to the daemon and return the response."""
     try:
-        client = SocketClient(socket_path, timeout=DAEMON_TOOL_TIMEOUT)
+        client = SocketClient(
+            socket_path or get_default_socket_path(), timeout=DAEMON_TOOL_TIMEOUT
+        )
         response = client.send_request(request)
         client.close()
         return response
@@ -215,7 +218,7 @@ def send_daemon_request(
 
 
 def daemon_list_tools(
-    server_command: str, socket_path: str = "/tmp/mcp-daemon.sock"
+    server_command: str, socket_path: Optional[str] = None
 ) -> List[Dict[str, Any]]:
     """List tools via daemon."""
     server_id = get_server_id(server_command)
@@ -245,7 +248,7 @@ def daemon_list_tools(
     return list_response.get("tools", [])
 
 
-def daemon_list_all_tools(socket_path: str = "/tmp/mcp-daemon.sock") -> Dict[str, Any]:
+def daemon_list_all_tools(socket_path: Optional[str] = None) -> Dict[str, Any]:
     """List all tools from all running daemon servers."""
     list_request = {"command": "list-all"}
     response = send_daemon_request(list_request, socket_path)
@@ -262,7 +265,7 @@ def daemon_call_tool(
     server_command: str,
     tool_name: str,
     arguments: Dict[str, Any],
-    socket_path: str = "/tmp/mcp-daemon.sock",
+    socket_path: Optional[str] = None,
 ) -> Any:
     """Call a tool via daemon."""
     server_id = get_server_id(server_command)
@@ -392,7 +395,7 @@ def cmd_list_tools(args):
                                 parent_env=os.environ.copy(),
                                 strict=False,
                             )
-            except Exception:
+            except Exception:  # noqa: B014,B110
                 # If config loading fails, continue without environment variables
                 pass
 
@@ -475,7 +478,7 @@ def cmd_call_tool(args):
                                 parent_env=os.environ.copy(),
                                 strict=False,
                             )
-            except Exception:
+            except Exception:  # noqa: B014,B110
                 # If config loading fails, continue without environment variables
                 pass
 
@@ -516,7 +519,7 @@ def cmd_interactive(args):
                             parent_env=os.environ.copy(),
                             strict=False,
                         )
-        except Exception:
+        except Exception:  # noqa: B014,B110
             # If config loading fails, continue without environment variables
             pass
 
@@ -597,8 +600,8 @@ def main():
     )
     list_parser.add_argument(
         "--daemon-socket",
-        default="/tmp/mcp-daemon.sock",
-        help="Daemon socket path (default: /tmp/mcp-daemon.sock)",
+        default=None,
+        help="Daemon socket path (default: $MCP_DAEMON_SOCKET, $XDG_RUNTIME_DIR/mcp-daemon.sock, or /tmp/mcp-daemon.sock)",
     )
 
     # call-tool command
@@ -613,8 +616,8 @@ def main():
     )
     call_parser.add_argument(
         "--daemon-socket",
-        default="/tmp/mcp-daemon.sock",
-        help="Daemon socket path (default: /tmp/mcp-daemon.sock)",
+        default=None,
+        help="Daemon socket path (default: $MCP_DAEMON_SOCKET, $XDG_RUNTIME_DIR/mcp-daemon.sock, or /tmp/mcp-daemon.sock)",
     )
 
     # interactive command

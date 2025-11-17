@@ -6,6 +6,7 @@ Handles socket creation, communication, error handling, and timeout management.
 """
 
 import json
+import os
 import socket
 import sys
 from typing import Any, Dict, Optional
@@ -15,8 +16,32 @@ DAEMON_CHECK_TIMEOUT = 1.0  # Quick availability check
 DAEMON_TOOL_TIMEOUT = 30.0  # Extended timeout for tool execution
 DAEMON_CTRL_TIMEOUT = 5.0  # Control commands (stop, status)
 
+
+def get_default_socket_path() -> str:
+    """
+    Get the default socket path with security-aware defaults.
+
+    Priority: environment variable > XDG_RUNTIME_DIR > /tmp fallback
+    Using XDG_RUNTIME_DIR provides better security through proper permissions.
+
+    Returns:
+        Path to use for daemon socket
+    """
+    # Check explicit environment variable first
+    if "MCP_DAEMON_SOCKET" in os.environ:
+        return os.environ["MCP_DAEMON_SOCKET"]
+
+    # Use XDG_RUNTIME_DIR if available (more secure than /tmp)
+    xdg_runtime = os.environ.get("XDG_RUNTIME_DIR")
+    if xdg_runtime:
+        return os.path.join(xdg_runtime, "mcp-daemon.sock")
+
+    # Fall back to /tmp (acceptable for transient socket files)
+    return "/tmp/mcp-daemon.sock"  # noqa: S108,B108
+
+
 # Default socket path
-DEFAULT_SOCKET_PATH = "/tmp/mcp-daemon.sock"
+DEFAULT_SOCKET_PATH = get_default_socket_path()
 
 
 class SocketClient:
@@ -36,7 +61,7 @@ class SocketClient:
         Initialize socket client.
 
         Args:
-            socket_path: Path to daemon socket (default: /tmp/mcp-daemon.sock)
+            socket_path: Path to daemon socket (default: from get_default_socket_path())
             timeout: Communication timeout in seconds (default: 30.0)
         """
         self.socket_path = socket_path
@@ -131,8 +156,9 @@ class SocketClient:
         if self.sock:
             try:
                 self.sock.close()
-            except Exception:
-                pass  # Ignore errors on close
+            except Exception:  # noqa: B014,B110
+                # Ignore errors on close to prevent masking other exceptions
+                pass
             self.sock = None
 
     def __enter__(self):
