@@ -290,31 +290,100 @@ def daemon_call_tool(
     return call_response.get("result", {})
 
 
-def generate_placeholder(prop_info: dict) -> any:
+def _append_constraints_to_description(description: str, prop_info: dict) -> str:
     """
-    Generate appropriate placeholder for a property based on its type.
+    Append type constraints to description string.
+
+    Phase 2 (ADR-0010): Enhance descriptions with constraint information.
 
     Args:
-        prop_info: Property schema info with type and structure
+        description: Base description text
+        prop_info: Property schema with potential constraints
 
     Returns:
-        Placeholder value or structure representing the type
+        Description with constraints appended (truncated to 80 chars total)
+    """
+    constraints = []
+
+    # Add enum values
+    if "enum" in prop_info:
+        enum_values = prop_info["enum"]
+        if enum_values:
+            enum_str = ", ".join(str(e) for e in enum_values[:5])
+            if len(enum_values) > 5:
+                enum_str += ", ..."
+            constraints.append(f"enum: {enum_str}")
+
+    # Add numeric range
+    if "minimum" in prop_info or "maximum" in prop_info:
+        min_val = prop_info.get("minimum")
+        max_val = prop_info.get("maximum")
+        if min_val is not None and max_val is not None:
+            constraints.append(f"range: {min_val}-{max_val}")
+        elif min_val is not None:
+            constraints.append(f"min: {min_val}")
+        elif max_val is not None:
+            constraints.append(f"max: {max_val}")
+
+    # Add format
+    if "format" in prop_info:
+        constraints.append(f"format: {prop_info['format']}")
+
+    # Add pattern
+    if "pattern" in prop_info:
+        pattern = prop_info["pattern"]
+        # Truncate very long patterns
+        if len(pattern) > 20:
+            pattern = pattern[:17] + "..."
+        constraints.append(f"pattern: {pattern}")
+
+    # Combine description with constraints
+    if constraints:
+        enhanced_desc = f"{description} ({', '.join(constraints)})"
+    else:
+        enhanced_desc = description
+
+    return enhanced_desc
+
+
+def generate_placeholder(prop_info: dict) -> any:
+    """
+    Generate enhanced placeholder with type and description from property schema.
+
+    ADR-0010: Enhanced placeholders include both type and description information
+    to provide better context for tool invocation without requiring schema lookup.
+    Phase 2: Adds support for enums and constraints.
+
+    Args:
+        prop_info: Property schema info with type, description, and structure
+
+    Returns:
+        Placeholder value with format <type:TYPE|desc:DESCRIPTION> for leaf values,
+        or structure (list/dict) for containers with enhanced placeholders inside
     """
     prop_type = prop_info.get("type", "string")
+    description = prop_info.get("description") or ""
 
-    if prop_type == "string":
-        return "<string>"
-    elif prop_type == "number":
-        return "<number>"
-    elif prop_type == "integer":
-        return "<integer>"
-    elif prop_type == "boolean":
-        return True
-    elif prop_type == "array":
+    # Use fallback if description is empty or missing
+    if not description:
+        description = "No description available"
+
+    # Phase 2: Append constraints to description
+    description = _append_constraints_to_description(description, prop_info)
+
+    # Truncate long descriptions to 80 characters
+    if len(description) > 80:
+        description = description[:77] + "..."
+
+    # Format the enhanced placeholder
+    enhanced_placeholder = f"<type:{prop_type}|desc:{description}>"
+
+    # For container types, return structure with enhanced placeholders inside
+    if prop_type == "array":
         item_placeholder = generate_placeholder(prop_info.get("items", {}))
         return [item_placeholder, item_placeholder]
     elif prop_type == "object":
-        # For nested objects, show the structure with type placeholders
+        # For nested objects, show the structure with enhanced placeholders
         nested_props = prop_info.get("properties", {})
         if nested_props:
             nested_example = {}
@@ -322,9 +391,12 @@ def generate_placeholder(prop_info: dict) -> any:
                 nested_example[key] = generate_placeholder(val)
             return nested_example
         else:
-            return {"<string>": "<string>"}
+            # Default empty object structure
+            default_placeholder = "<type:string|desc:No description available>"
+            return {default_placeholder: default_placeholder}
     else:
-        return f"<{prop_type}>"
+        # For leaf types (string, number, integer, boolean, custom), return enhanced placeholder
+        return enhanced_placeholder
 
 
 def generate_json_example(schema: dict) -> dict:
